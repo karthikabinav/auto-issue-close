@@ -2,7 +2,7 @@ name: Auto Close Issues
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
 
 permissions:
   issues: write
@@ -17,10 +17,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue = context.payload.issue;
-            const labelNames = (issue.labels || []).map(label => label.name);
-            const matchedLabel = labelNames.find(name => name === 'completed' || name === 'wontfix');
+            const labelName = context.payload.label?.name;
 
-            if (!matchedLabel || issue.state === 'closed') {
+            if (!labelName || (labelName !== 'completed' && labelName !== 'wontfix') || issue.state === 'closed') {
               console.log('Issue does not need to be closed.');
               return;
             }
@@ -36,7 +35,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `This issue has been automatically closed because it was labeled as **${matchedLabel}**.`
+              body: `This issue has been automatically closed because it was labeled as **${labelName}**.`
             });
 
-            console.log(`Issue #${issue.number} closed due to label: ${matchedLabel}`);
+            console.log(`Issue #${issue.number} closed due to label: ${labelName}`);
