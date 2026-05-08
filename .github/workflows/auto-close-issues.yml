@@ -2,7 +2,10 @@ name: Auto Close Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
+
+permissions:
+  issues: write
 
 jobs:
   close-issue:
@@ -14,22 +17,26 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue = context.payload.issue;
-            const labelName = context.payload.label.name;
-            
-            if (labelName === "completed" || labelName === "wontfix") {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: "closed"
-              });
-              
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `This issue has been automatically closed because it was labeled as \"${labelName}\".`
-              });
-              
-              console.log(`Issue #${issue.number} closed due to label: ${labelName}`);
+            const labelNames = (issue.labels || []).map(label => label.name);
+            const matchedLabel = labelNames.find(name => name === 'completed' || name === 'wontfix');
+
+            if (!matchedLabel || issue.state === 'closed') {
+              console.log('Issue does not need to be closed.');
+              return;
             }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: 'closed'
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `This issue has been automatically closed because it was labeled as **${matchedLabel}**.`
+            });
+
+            console.log(`Issue #${issue.number} closed due to label: ${matchedLabel}`);
