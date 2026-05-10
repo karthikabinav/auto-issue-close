@@ -3,15 +3,15 @@ on:
   issues:
     types: [labeled]
 
-permissions:
-  issues: write
-
 jobs:
-  close:
+  close-issue:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+    permissions:
+      issues: write
     steps:
-      - name: Close Issue
-        run: gh issue close ${{ github.event.issue.number }}
+      - name: Close issue if labeled completed or wontfix
+        if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }}
