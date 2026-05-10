@@ -1,0 +1,14 @@
+name: Close labeled issues
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+    steps:
+      - name: Close Issue
+        run: gh issue close ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
