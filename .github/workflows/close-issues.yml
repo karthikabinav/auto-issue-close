@@ -1,20 +1,19 @@
-name: Auto Close Issues
+name: Close Labeled Issues
+
 on:
   issues:
     types: [labeled]
 
+permissions:
+  issues: write
+
 jobs:
   close-issue:
     runs-on: ubuntu-latest
+    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
     steps:
-      - name: Close Issue
-        if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            })
+      - name: Close the issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close ${{ github.event.issue.number }} --repo ${{ github.repository }}
