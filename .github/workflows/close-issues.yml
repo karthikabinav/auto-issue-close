@@ -25,6 +25,6 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `This issue was automatically closed because it was labeled as **${label.name}**.`
+                body: `This issue was automatically closed because it was labeled as \`${label.name}\`.`
               });
             }
