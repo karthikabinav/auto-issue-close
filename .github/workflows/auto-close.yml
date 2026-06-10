@@ -1,14 +1,14 @@
 name: Auto Close Issues
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 jobs:
   auto-close:
     runs-on: ubuntu-latest
     steps:
       - name: Close Issue
-        if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+        if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
         uses: actions/github-script@v6
         with:
           script: |
