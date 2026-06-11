@@ -1,4 +1,4 @@
-name: Auto Close Labeled Issues
+name: Close Labeled Issues
 
 on:
   issues:
@@ -7,28 +7,25 @@ on:
 jobs:
   close-issue:
     runs-on: ubuntu-latest
-    if: contains(fromJSON('["completed", "wontfix"]'), github.event.label.name)
     steps:
-      - name: Close issue
+      - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            });
-            const label = context.payload.label.name;
-            let comment = '';
-            if (label === 'completed') {
-              comment = 'This issue has been marked as completed and is now closed.';
-            } else if (label === 'wontfix') {
-              comment = 'This issue has been marked as wontfix and is now closed.';
+            const issue = context.payload.issue;
+            const label = context.payload.label;
+            if (label.name === "completed" || label.name === "wontfix") {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed"
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `This issue was automatically closed because it was labeled as **${label.name}**.`
+              });
             }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: comment
-            });
