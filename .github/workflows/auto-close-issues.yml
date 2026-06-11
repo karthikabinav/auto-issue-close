@@ -1,36 +1,34 @@
-name: Auto Close Completed or Wontfix Issues
+name: Auto Close Labeled Issues
 
 on:
   issues:
-    types: [opened, labeled, reopened]
-
-permissions:
-  issues: write
-  contents: read
+    types: [labeled]
 
 jobs:
-  close-labeled-issues:
+  close-issue:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     steps:
-      - name: Close issue
+      - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue = context.payload.issue;
-            const labels = issue.labels.map(label => label.name);
-            const matchedLabel = labels.includes('completed') ? 'completed' : 'wontfix';
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              body: `Closing automatically because this issue is labeled '${matchedLabel}'.`
-            });
-
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              state: 'closed'
-            });
+            const labelName = context.payload.label.name;
+            if (labelName === "completed" || labelName === "wontfix") {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: "closed"
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `This issue was automatically closed because it was labeled as **${labelName}**.`
+              });
+              console.log(`Issue #${issue.number} closed due to label: ${labelName}`);
+            } else {
+              console.log(`Label ${labelName} does not trigger auto-close.`);
+            }
