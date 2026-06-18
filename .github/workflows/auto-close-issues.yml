@@ -2,35 +2,43 @@ name: Auto Close Issues
 
 on:
   issues:
-    types: [labeled, opened]
+    types: [labeled]
 
 jobs:
-  auto-close:
+  close-issue:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, completed) || contains(github.event.issue.labels.*.name, wontfix)
+    permissions:
+      issues: write
+    
     steps:
-      - name: Close Issue
+      - name: Check label and close issue
         uses: actions/github-script@v7
         with:
           script: |
-            const issue = context.issue;
-            const labels = context.payload.issue.labels.map(label => label.name);
+            const issue = context.payload.issue;
+            const label = context.payload.label.name;
             
-            if (labels.includes(completed) || labels.includes(wontfix)) {
+            // Check if the label is "completed" or "wontfix"
+            if (label === "completed" || label === "wontfix") {
+              console.log(`Closing issue #${issue.number} with label "${label}"`);
+              
+              // Close the issue
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                state: closed
+                state: "closed"
               });
               
-              const label = labels.includes(completed) ? completed : wontfix;
+              // Add a comment explaining why it was closed
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `This issue has been automatically closed because it was labeled as ${label}.`
+                body: `This issue has been automatically closed because it was labeled as "${label}".`
               });
               
-              console.log(`Closed issue #${issue.number} with label: ${label}`);
+              console.log(`Successfully closed issue #${issue.number}`);
+            } else {
+              console.log(`Label "${label}" does not trigger auto-close. Issue remains open.`);
             }
