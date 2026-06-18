@@ -5,40 +5,36 @@ on:
     types: [labeled]
 
 jobs:
-  close-issue:
+  auto-close:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-    
     steps:
       - name: Check label and close issue
         uses: actions/github-script@v7
         with:
           script: |
-            const issue = context.payload.issue;
             const label = context.payload.label.name;
+            const validLabels = ['completed', 'wontfix'];
             
-            // Check if the label is "completed" or "wontfix"
-            if (label === "completed" || label === "wontfix") {
-              console.log(`Closing issue #${issue.number} with label "${label}"`);
+            if (validLabels.includes(label)) {
+              console.log(`Label '${label}' detected. Closing issue #${context.issue.number}...`);
               
-              // Close the issue
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                state: "closed"
+                issue_number: context.issue.number,
+                state: 'closed'
               });
               
-              // Add a comment explaining why it was closed
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `This issue has been automatically closed because it was labeled as "${label}".`
+                issue_number: context.issue.number,
+                body: `🤖 Automatically closing this issue because it was labeled as '${label}'.`
               });
               
-              console.log(`Successfully closed issue #${issue.number}`);
+              console.log(`Issue #${context.issue.number} closed successfully.`);
             } else {
-              console.log(`Label "${label}" does not trigger auto-close. Issue remains open.`);
+              console.log(`Label '${label}' does not trigger auto-close. Skipping.`);
             }
