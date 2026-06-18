@@ -1,34 +1,36 @@
-name: Auto Close Labeled Issues
+name: Auto Close Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, opened]
 
 jobs:
-  close-issue:
+  auto-close:
     runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, completed) || contains(github.event.issue.labels.*.name, wontfix)
     steps:
-      - name: Close issue if labeled completed or wontfix
+      - name: Close Issue
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const issue = context.payload.issue;
-            const labelName = context.payload.label.name;
-            if (labelName === "completed" || labelName === "wontfix") {
+            const issue = context.issue;
+            const labels = context.payload.issue.labels.map(label => label.name);
+            
+            if (labels.includes(completed) || labels.includes(wontfix)) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                state: "closed"
+                state: closed
               });
+              
+              const label = labels.includes(completed) ? completed : wontfix;
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `This issue was automatically closed because it was labeled as **${labelName}**.`
+                body: `This issue has been automatically closed because it was labeled as ${label}.`
               });
-              console.log(`Issue #${issue.number} closed due to label: ${labelName}`);
-            } else {
-              console.log(`Label ${labelName} does not trigger auto-close.`);
+              
+              console.log(`Closed issue #${issue.number} with label: ${label}`);
             }
