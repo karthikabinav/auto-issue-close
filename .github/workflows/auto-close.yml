@@ -11,7 +11,7 @@ jobs:
       issues: write
     steps:
       - name: Close issue if labeled completed or wontfix
-        if: contains(fromJSON("[\"completed\", \"wontfix\"]"), github.event.label.name)
+        if: contains(fromJSON(["completed", "wontfix"]), github.event.label.name)
         uses: actions/github-script@v7
         with:
           script: |
