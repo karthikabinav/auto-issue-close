@@ -1,30 +1,38 @@
-name: Auto Close Issues
+name: Auto Close Labeled Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, opened]
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
 
 jobs:
-  close-issue:
+  close-issues:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - name: Close issue if labeled completed or wontfix
-        uses: actions/github-script@v6
+      - name: Close issues with completed/wontfix labels
+        uses: actions/github-script@v7
         with:
           script: |
-            const issue = context.payload.issue;
-            const label = context.payload.label;
-            if (label.name === 'completed' || label.name === 'wontfix') {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                state: 'closed'
-              });
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `This issue was automatically closed because it was labeled as **${label.name}**.`
-              });
+            const labelsToClose = ["completed", "wontfix"];
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open"
+            });
+            for (const issue of issues) {
+              if (issue.pull_request) continue;
+              const issueLabels = issue.labels.map(l => typeof l === "string" ? l : l.name);
+              if (issueLabels.some(label => labelsToClose.includes(label))) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: "closed"
+                });
+                console.log(`Closed issue #${issue.number}`);
+              }
             }
