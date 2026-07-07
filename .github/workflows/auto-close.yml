@@ -1,24 +1,21 @@
-name: Auto Close Issues
-
+name: Auto Close Labeled Issues
 on:
   issues:
-    types: [labeled]
-
+    types: [labeled, opened, edited]
 jobs:
-  auto-close:
-    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
+  close:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - name: Close issue when labeled completed or wontfix
+      - name: Close issue if label matches
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            })
-            console.log(`Closed issue #${context.issue.number} with label ${context.payload.label.name}`)
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes(completed) || labels.includes(wontfix)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: closed
+              });
+            }
