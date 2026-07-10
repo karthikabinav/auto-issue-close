@@ -3,17 +3,19 @@ on:
   issues:
     types: [labeled]
 jobs:
-  close-issue:
+  auto-close:
     runs-on: ubuntu-latest
-    if: contains('completed,wontfix', github.event.label.name)
     steps:
-      - name: Close issue
+      - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            });
+            const label = context.payload.label.name;
+            if (label === 'completed' || label === 'wontfix') {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                state: 'closed'
+              });
+            }
