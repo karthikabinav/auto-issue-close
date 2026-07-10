@@ -1,13 +1,15 @@
 name: Auto Close Issues
+
 on:
   issues:
     types: [labeled]
+
 jobs:
-  auto-close:
+  close-issue:
     runs-on: ubuntu-latest
     steps:
       - name: Close issue if labeled completed or wontfix
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const label = context.payload.label.name;
