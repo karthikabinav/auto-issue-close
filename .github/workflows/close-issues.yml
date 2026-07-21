@@ -1,14 +1,14 @@
 name: Auto Close Issues
 on:
   issues:
-    types: [labeled]
+    types: [labeled, opened, edited, reopened]
 jobs:
   close-issue:
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     steps:
       - name: Close issue
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.issues.update({
@@ -16,4 +16,10 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               state: 'closed'
-            });
+            })
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Automatically closed by workflow: issue labeled completed or wontfix.'
+            })
