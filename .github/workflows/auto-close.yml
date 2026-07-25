@@ -9,10 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-    if: github.event.label.name == completed || github.event.label.name == wontfix
+    if: ${{ github.event.label.name == completed || github.event.label.name == wontfix }}
     steps:
       - name: Close issue
-        uses: peter-evans/close-issue@v3
+        uses: actions/github-script@v7
         with:
-          issue-number: ${{ github.event.issue.number }}
-          comment: Auto-closing issue because it was labeled as `${{ github.event.label.name }}`.
+          script: |
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "closed"
+            })
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Auto-closing issue because it was labeled as \u0027${context.payload.label.name}\u0027.`
+            })
