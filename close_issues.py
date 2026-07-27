@@ -1,33 +1,29 @@
 """
 Automated Issue Closing Script
-Closes issues labeled as 'completed' or 'wontfix'
+Closes GitHub issues labeled as 'completed' or 'wontfix'
 """
 import os
 from github import Github
 
-# For use with PyGithub - can also be adapted for github MCP tools
-REPO_NAME = os.getenv('GITHUB_REPOSITORY', 'karthikabinav/auto-issue-close')
-TOKEN = os.getenv('GITHUB_TOKEN')
-LABELS_TO_CLOSE = ['completed', 'wontfix']
+# Configuration
+REPO_NAME = "karthikabinav/auto-issue-close"
+TARGET_LABELS = {"completed", "wontfix"}
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-def close_labeled_issues(repo):
-    """Close open issues that have 'completed' or 'wontfix' labels."""
-    issues = repo.get_issues(state='open')
+def close_labeled_issues():
+    if not GITHUB_TOKEN:
+        print("GITHUB_TOKEN not set, running in dry-run mode")
+        return
+    g = Github(GITHUB_TOKEN)
+    repo = g.get_repo(REPO_NAME)
+    issues = repo.get_issues(state="open")
     for issue in issues:
-        labels = [l.name for l in issue.labels]
-        if any(lbl in LABELS_TO_CLOSE for lbl in labels):
-            reason = 'completed' if 'completed' in labels else 'not_planned'
-            print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
-            issue.create_comment(f"Automatically closing this issue because it was labeled as **{labels}**.")
-            issue.edit(state='closed', state_reason=reason)
+        labels = {label.name for label in issue.labels}
+        if labels & TARGET_LABELS:
+            matched = labels & TARGET_LABELS
+            print(f"Closing issue #{issue.number}: {issue.title} (labels: {matched})")
+            issue.create_comment(f"Automatically closing this issue because it was labeled as **{matched.pop()}**.")
+            issue.edit(state="closed", state_reason="completed")
 
-if __name__ == '__main__':
-    # Example usage with local token, or designed to run in GitHub Actions
-    if TOKEN:
-        g = Github(TOKEN)
-        repo = g.get_repo(REPO_NAME)
-        close_labeled_issues(repo)
-    else:
-        print("Set GITHUB_TOKEN to run against live repository.")
-        print(f"Target repo: {REPO_NAME}")
-        print(f"Would close issues with labels: {LABELS_TO_CLOSE}")
+if __name__ == "__main__":
+    close_labeled_issues()
