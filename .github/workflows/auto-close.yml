@@ -1,4 +1,4 @@
-name: Auto Close Issues
+name: Auto Close Labeled Issues
 
 on:
   issues:
@@ -6,13 +6,13 @@ on:
 
 jobs:
   close-issue:
-    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
     runs-on: ubuntu-latest
+    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
     permissions:
       issues: write
     steps:
-      - name: Close issue
-        uses: peter-evans/close-issue@v3
+      - name: Close Issue
+        uses: peter-evans/close-issue@v2
         with:
           issue-number: ${{ github.event.issue.number }}
-          comment: "Auto-closing issue with label `${{ github.event.label.name }}`"
+          comment: "Automatically closing this issue because it was labeled as '${{ github.event.label.name }}'."
