@@ -1,56 +1,26 @@
-#!/usr/bin/env python3
-"""
-Automated Issue Closing Script
-Closes GitHub issues labeled as "completed" or "wontfix"
-"""
-
 import os
-import requests
+from github import Github
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO_OWNER = "karthikabinav"
-REPO_NAME = "auto-issue-close"
+# Script to automatically close issues labeled as 'completed' or 'wontfix'
+# Usage: Set GITHUB_TOKEN env var and run
 
-CLOSE_LABELS = ["completed", "wontfix"]
-
-def get_open_issues():
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues?state=open&per_page=100"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-def close_issue(issue_number, label):
-    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues/{issue_number}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    data = {"state": "closed"}
-    response = requests.patch(url, headers=headers, json=data)
-    response.raise_for_status()
-    
-    comment_url = f"{url}/comments"
-    comment_data = {"body": f"This issue was automatically closed because it was labeled as **{label}**."}
-    requests.post(comment_url, headers=headers, json=comment_data)
-    print(f"Closed issue #{issue_number} labeled as {label}")
+REPO_NAME = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TARGET_LABELS = {"completed", "wontfix"}
 
 def main():
-    if not GITHUB_TOKEN:
-        print("Error: GITHUB_TOKEN environment variable not set")
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        print("GITHUB_TOKEN not set, running in dry-run mode")
         return
-    
-    issues = get_open_issues()
-    closed_count = 0
-    
+    g = Github(token)
+    repo = g.get_repo(REPO_NAME)
+    issues = repo.get_issues(state="open")
     for issue in issues:
-        if "pull_request" in issue:
-            continue
-        labels = [label["name"] for label in issue.get("labels", [])]
-        for close_label in CLOSE_LABELS:
-            if close_label in labels:
-                close_issue(issue["number"], close_label)
-                closed_count += 1
-                break
-    
-    print(f"\nAutomation complete! Closed {closed_count} issues.")
+        labels = {label.name for label in issue.labels}
+        if labels & TARGET_LABELS:
+            print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
+            issue.create_comment(f"Auto-closing issue with labels: {', '.join(labels & TARGET_LABELS)}")
+            issue.edit(state="closed")
 
 if __name__ == "__main__":
     main()
