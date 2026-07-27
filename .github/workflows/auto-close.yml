@@ -1,45 +1,18 @@
-name: Auto Close Labeled Issues
+name: Auto Close Issues
 
 on:
   issues:
-    types: [labeled, opened]
-
-permissions:
-  issues: write
+    types: [labeled]
 
 jobs:
-  auto-close:
+  close-issue:
+    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - name: Auto close issues with completed or wontfix label
-        uses: actions/github-script@v7
+      - name: Close issue
+        uses: peter-evans/close-issue@v3
         with:
-          script: |
-            const issue = context.payload.issue || context.issue;
-            const label = context.payload.label;
-            const issue_number = issue.number;
-            const labels = issue.labels.map(l => l.name);
-            // Check if newly added label or any existing label matches
-            const shouldClose = labels.includes("completed") || labels.includes("wontfix");
-            if (label) {
-              console.log(`Label "${label.name}" added to issue #${issue_number}`);
-            }
-            console.log(`Current labels for issue #${issue_number}: ${labels.join(", ")}`);
-            if (shouldClose) {
-              console.log(`Closing issue #${issue_number} because it has completed or wontfix label`);
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_number,
-                state: "closed",
-                state_reason: "completed"
-              });
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue_number,
-                body: `Automatically closing this issue because it was labeled as "${labels.includes("completed") ? "completed" : "wontfix"}".`
-              });
-            } else {
-              console.log(`Issue #${issue_number} does not require auto-closing`);
-            }
+          issue-number: ${{ github.event.issue.number }}
+          comment: "Auto-closing issue with label `${{ github.event.label.name }}`"
