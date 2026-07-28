@@ -5,9 +5,6 @@ Closes GitHub issues labeled as 'completed' or 'wontfix'
 import os
 from github import Github
 
-# Alternatively using GitHub REST API via PyGithub or requests
-# This script demonstrates logic for auto-closing issues
-
 CLOSE_LABELS = {"completed", "wontfix"}
 
 def should_close_issue(labels):
@@ -26,13 +23,11 @@ def close_issues(repo_name, token=None):
     for issue in repo.get_issues(state="open"):
         if should_close_issue(issue.labels):
             print(f"Closing issue #{issue.number}: {issue.title} - labels: {[l.name for l in issue.labels]}")
-            issue.create_comment(f"Automatically closing this issue because it was labeled as **{,.join([l.name for l in issue.labels if l.name in CLOSE_LABELS])}**.")
+            issue.create_comment(f"Automatically closing this issue because it was labeled as **{chr(44).join([l.name for l in issue.labels if l.name in CLOSE_LABELS])}**.")
             issue.edit(state="closed")
         else:
             print(f"Keeping open issue #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
-    # Example usage
-    # close_issues("karthikabinav/auto-issue-close")
     print("Auto-close script loaded. Labels that trigger close:", CLOSE_LABELS)
     print("Use close_issues(repo_name) to execute.")
