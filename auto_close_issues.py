@@ -2,10 +2,7 @@
 Automated Issue Closing Script
 Closes issues labeled completed or wontfix
 """
-import os
-import sys
-import requests
-
+import os, sys, requests
 TARGET_LABELS = {"completed", "wontfix"}
 
 def get_issues(owner, repo, token):
@@ -16,11 +13,11 @@ def get_issues(owner, repo, token):
     resp.raise_for_status()
     return resp.json()
 
-def close_issue(owner, repo, issue_number, token, label):
-    base = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
+def close_issue(owner, repo, number, token, label):
+    base = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
     headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
     comment_url = base + "/comments"
-    body = f"Auto closing issue labeled {label}"
+    body = "Auto closing issue labeled " + label
     requests.post(comment_url, headers=headers, json={"body": body})
     resp = requests.patch(base, headers=headers, json={"state": "closed"})
     resp.raise_for_status()
@@ -41,16 +38,18 @@ def main():
     for issue in issues:
         if "pull_request" in issue:
             continue
-        labels = {lab["name"] for lab in issue.get("labels", [])}
+        labels = set()
+        for lab in issue.get("labels", []):
+            labels.add(lab["name"])
         inter = TARGET_LABELS.intersection(labels)
         if inter:
             lab = list(inter)[0]
-            print(f"Closing {issue[number]} {issue[title]} label {lab}")
+            print("Closing", issue["number"], issue["title"], "label", lab)
             close_issue(args.owner, args.repo, issue["number"], token, lab)
             closed += 1
         else:
-            print(f"Skip {issue[number]} {issue[title]}")
-    print(f"Closed {closed}")
+            print("Skip", issue["number"], issue["title"])
+    print("Closed", closed)
 
 if __name__ == "__main__":
     main()
