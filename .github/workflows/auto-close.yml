@@ -1,4 +1,4 @@
-name: Auto Close Labeled Issues
+name: Automated Issue Closing
 
 on:
   issues:
@@ -7,34 +7,27 @@ on:
 jobs:
   auto-close:
     runs-on: ubuntu-latest
+    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix') || (github.event.issue.labels != null && (contains(join(github.event.issue.labels.*.name, ,), 'completed') || contains(join(github.event.issue.labels.*.name, ,), 'wontfix')))
     permissions:
       issues: write
     steps:
       - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const issue = context.payload.issue;
-            const labelName = context.payload.label ? context.payload.label.name : null;
-            const labels = issue.labels.map(l => l.name);
-            const targetLabels = ['completed', 'wontfix'];
-            const shouldClose = labelName ? targetLabels.includes(labelName) : labels.some(l => targetLabels.includes(l));
-            if (shouldClose && issue.state === 'open') {
-              console.log(`Closing issue #${issue.number} due to label: ${labelName || labels.join(', ')}`);
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes('completed') || labels.includes('wontfix')) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
+                issue_number: context.payload.issue.number,
                 state: 'closed',
                 state_reason: 'completed'
               });
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `✅ Automatically closed because label \`"${labelName || targetLabels.find(l=>labels.includes(l))}\"\`` + ` is in [completed, wontfix].`
+                issue_number: context.payload.issue.number,
+                body: `✅ Automatically closed because label is: **${labels.find(l => l==='completed' || l==='wontfix')}**.`
               });
-            } else {
-              console.log(`Issue #${issue.number} does not require auto-close. Labels: ${labels.join(', ')}`);
             }
