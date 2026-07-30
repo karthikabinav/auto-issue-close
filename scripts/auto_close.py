@@ -1,44 +1,35 @@
+"""
+Automated Issue Closing Script
+Closes GitHub issues labeled as 'completed' or 'wontfix'
+"""
 import os
-import requests
+import sys
+try:
+    from github import Github
+except ImportError:
+    Github = None
 
-# GitHub automation script to close issues labeled as completed or wontfix
-# Usage: Set GITHUB_TOKEN and GITHUB_REPOSITORY env vars
-
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-REPO = os.getenv("GITHUB_REPOSITORY")  # e.g., owner/repo
-API_BASE = "https://api.github.com"
-
+REPO_NAME = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
 TARGET_LABELS = {"completed", "wontfix"}
 
-def get_open_issues():
-    url = f"{API_BASE}/repos/{REPO}/issues?state=open&per_page=100"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    r = requests.get(url, headers=headers)
-    r.raise_for_status()
-    return r.json()
+def should_close_issue(labels):
+    """Check if issue has target label to auto-close."""
+    label_names = {label.name.lower() if hasattr(label, "name") else str(label).lower() for label in labels}
+    return bool(label_names & TARGET_LABELS)
 
-def close_issue(issue_number):
-    url = f"{API_BASE}/repos/{REPO}/issues/{issue_number}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    data = {"state": "closed", "state_reason": "completed"}
-    r = requests.patch(url, headers=headers, json=data)
-    r.raise_for_status()
-    print(f"Closed issue #{issue_number}")
-    # Add comment
-    comment_url = f"{API_BASE}/repos/{REPO}/issues/{issue_number}/comments"
-    comment = {"body": f"Automatically closing issue labeled as completed/wontfix."}
-    requests.post(comment_url, headers=headers, json=comment)
-
-def main():
-    if not GITHUB_TOKEN or not REPO:
-        print("Missing GITHUB_TOKEN or GITHUB_REPOSITORY")
+def close_issues():
+    if not TOKEN or Github is None:
+        print("GITHUB_TOKEN not set or PyGithub not installed - dry run mode")
+        print(f"Would close issues with labels: {TARGET_LABELS}")
         return
-    issues = get_open_issues()
-    for issue in issues:
-        labels = {lbl["name"] for lbl in issue.get("labels", [])}
-        if labels & TARGET_LABELS:
-            print(f"Issue #{issue[number]} titled \"{issue[title]}\" has labels {labels} -> closing")
-            close_issue(issue["number"])
+    g = Github(TOKEN)
+    repo = g.get_repo(REPO_NAME)
+    for issue in repo.get_issues(state="open"):
+        if should_close_issue(issue.labels):
+            print(f"Closing issue #{issue.number}: {issue.title} with labels {[l.name for l in issue.labels]}")
+            issue.create_comment(f"Automatically closing this issue because it was labeled as `{[l.name for l in issue.labels if l.name.lower() in TARGET_LABELS][0]}`.")
+            issue.edit(state="closed", state_reason="completed")
 
 if __name__ == "__main__":
-    main()
+    close_issues()
