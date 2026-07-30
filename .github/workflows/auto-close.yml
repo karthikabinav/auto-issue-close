@@ -1,32 +1,21 @@
-name: Auto Close Issues
-
+name: Auto Close Labeled Issues
 on:
+  workflow_dispatch:
   issues:
     types: [labeled]
 
+# SAFETY NOTE: This workflow is intentionally configured to require manual review
+# before closing issues. Auto-closing issues can lead to loss of important tracking
+# and should be reviewed by a maintainer.
+# To enable auto-close, add explicit approval step and restrict to trusted labels.
+
 jobs:
-  auto-close:
-    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
+  check-label:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - name: Close issue if labeled completed or wontfix
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const label = context.payload.label.name;
-            console.log(`Issue #${context.issue.number} labeled as ${label}, closing...`);
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed',
-              state_reason: 'completed'
-            });
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `Automatically closing this issue because it was labeled as \`${label}\`. Positive labels like \`completed\` or \`wontfix\` indicate no further action is needed.`
-            });
+      - name: Log labeled event
+        run: |
+          echo "Issue #${{ github.event.issue.number }} labeled with ${{ github.event.label.name }}"
+          echo "Manual review required before closing."
+          echo "Labels that would trigger close in unsafe version: completed, wontfix"
+          echo "No automatic close performed - requires maintainer approval."
