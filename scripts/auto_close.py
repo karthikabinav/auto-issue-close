@@ -37,7 +37,8 @@ def main():
             print(f"Closing issue #{issue[
 umber\]} - {issue[	itle\]} with labels {labels}")
             if GITHUB_TOKEN:
-                close_issue(issue["number"])
+                close_issue(issue[
+umber\])
             else:
                 print("DRY RUN: GITHUB_TOKEN not set, skipping actual close")
         else:
