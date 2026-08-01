@@ -34,15 +34,13 @@ def main():
     for issue in issues:
         labels = {label["name"] for label in issue.get("labels", [])}
         if labels & TARGET_LABELS:
-            print(f"Closing issue #{issue[
-umber\]} - {issue[	itle\]} with labels {labels}")
+            print(f"Closing issue #{issue["number"]} - {issue["title"]} with labels {labels}")
             if GITHUB_TOKEN:
                 close_issue(issue["number"])
             else:
                 print("DRY RUN: GITHUB_TOKEN not set, skipping actual close")
         else:
-            print(f"Skipping issue #{issue[
-umber\]} - {issue[	itle\]} with labels {labels}")
+            print(f"Skipping issue #{issue["number"]} - {issue["title"]} with labels {labels}")
 
 if __name__ == "__main__":
     main()
