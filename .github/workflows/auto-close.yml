@@ -6,7 +6,7 @@ on:
 
 jobs:
   auto-close:
-    if: contains(github.event.issue.labels.*.name, completed) || contains(github.event.issue.labels.*.name, wontfix)
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -17,17 +17,17 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const labels = issue.labels.map(l => l.name);
-            if (labels.includes(completed) || labels.includes(wontfix)) {
+            if (labels.includes('completed') || labels.includes('wontfix')) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                state: closed
+                state: 'closed'
               });
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `Automatically closing issue as it was labeled \`${labels.find(l => l===completed || l===wontfix)}\`.`
+                body: `Automatically closing issue as it was labeled \`${labels.find(l => l === 'completed' || l === 'wontfix')}\`.`
               });
             }
