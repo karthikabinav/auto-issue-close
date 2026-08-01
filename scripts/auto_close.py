@@ -1,49 +1,30 @@
-import os
-import requests
-
+#!/usr/bin/env python3
 """
 Automated Issue Closing Script
-Closes issues labeled as 'completed' or 'wontfix'
+Closes GitHub issues labeled as "completed" or "wontfix".
 """
+import os
+from github import Github  # PyGithub
 
-REPO_OWNER = os.getenv("GITHUB_REPOSITORY_OWNER", "karthikabinav")
-REPO_NAME = os.getenv("GITHUB_REPOSITORY_NAME", "auto-issue-close")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
-TARGET_LABELS = {"completed", "wontfix"}
-API_BASE = "https://api.github.com"
-
-def get_open_issues():
-    url = f"{API_BASE}/repos/{REPO_OWNER}/{REPO_NAME}/issues"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"} if GITHUB_TOKEN else {}
-    params = {"state": "open"}
-    resp = requests.get(url, headers=headers, params=params)
-    resp.raise_for_status()
-    return resp.json()
-
-def close_issue(issue_number):
-    url = f"{API_BASE}/repos/{REPO_OWNER}/{REPO_NAME}/issues/{issue_number}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"} if GITHUB_TOKEN else {}
-    data = {"state": "closed"}
-    resp = requests.patch(url, headers=headers, json=data)
-    resp.raise_for_status()
-    return resp.json()
+REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
 def main():
-    issues = get_open_issues()
-    for issue in issues:
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if labels & TARGET_LABELS:
-            print(f"Closing issue #{issue[
-umber\]} - {issue[	itle\]} with labels {labels}")
-            if GITHUB_TOKEN:
-                close_issue(issue[
-umber\])
-            else:
-                print("DRY RUN: GITHUB_TOKEN not set, skipping actual close")
+    if not TOKEN:
+        print("GITHUB_TOKEN not set, skipping.")
+        return
+    g = Github(TOKEN)
+    repo = g.get_repo(REPO)
+    for issue in repo.get_issues(state="open"):
+        label_names = {label.name for label in issue.labels}
+        if label_names & LABELS_TO_CLOSE:
+            matched = label_names & LABELS_TO_CLOSE
+            print(f"Closing issue #{issue.number}: {issue.title} (labels: {matched})")
+            issue.create_comment(f"Automatically closing issue labeled as {"".join(matched)}.")
+            issue.edit(state="closed")
         else:
-            print(f"Skipping issue #{issue[
-umber\]} - {issue[	itle\]} with labels {labels}")
+            print(f"Skipping issue #{issue.number}: {issue.title} (labels: {label_names})")
 
 if __name__ == "__main__":
     main()
