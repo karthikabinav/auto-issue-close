@@ -1,15 +1,14 @@
-name: Auto Close Labeled Issues
+name: Auto Close Issues
 on:
   issues:
     types: [labeled]
+
 jobs:
   auto-close:
-    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
+    if: contains(github.event.label.name, 'completed') || contains(github.event.label.name, 'wontfix')
     steps:
-      - name: Close issue when labeled completed or wontfix
+      - name: Close issue
         uses: actions/github-script@v6
         with:
           script: |
@@ -18,4 +17,14 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               state: 'closed'
+            })
+      - name: Add comment
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Automatically closing issue with label: ' + context.payload.label.name
             })
