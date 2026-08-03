@@ -1,34 +1,27 @@
-import requests
+"""
+Automated Issue Closing Script
+Closes GitHub issues labeled as 'completed' or 'wontfix'
+"""
 import os
+from github import Github
 
-# GitHub automation script to automatically close issues labeled as completed or wontfix
-# This script demonstrates learning GitHub automation for closing labeled issues.
-# Safety: Only operates on karthikabinav/auto-issue-close repository for educational testing
+REPO_NAME = "karthikabinav/auto-issue-close"
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
-REPO_OWNER = "karthikabinav"
-REPO_NAME = "auto-issue-close"
-TARGET_LABELS = {"completed", "wontfix"}
-# Note: This script is for educational purposes and only handles test issues
-# It checks labels before closing to avoid unintended closures
-
-def should_close_issue(labels):
-    """Determine if issue should be auto-closed based on labels"""
-    label_names = {label["name"] if isinstance(label, dict) else label for label in labels}
-    return bool(label_names & TARGET_LABELS)
-
-def close_issue(owner, repo, issue_number, token):
-    """Close a specific issue - only for test repository"""
-    url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
-    data = {"state": "closed", "state_reason": "completed"}
-    # Only close if confirmed to be in test repo
-    if owner == REPO_OWNER and repo == REPO_NAME:
-        response = requests.patch(url, headers=headers, json=data)
-        return response.json()
-    return None
+def close_labeled_issues():
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        raise ValueError("GITHUB_TOKEN environment variable not set")
+    g = Github(token)
+    repo = g.get_repo(REPO_NAME)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
+        if labels & LABELS_TO_CLOSE:
+            print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
+            issue.create_comment(f"Automatically closing this issue because it was labeled as **{list(labels & LABELS_TO_CLOSE)[0]}**.")
+            issue.edit(state="closed")
+        else:
+            print(f"Skipping issue #{issue.number}: {issue.title} (labels: {labels})")
 
 if __name__ == "__main__":
-    print("Automation script for closing issues labeled completed or wontfix")
-    print("This script is designed for educational testing in auto-issue-close repository")
-    # Example usage would require GITHUB_TOKEN env var
-    # For GitHub Actions, see .github/workflows/auto-close.yml
+    close_labeled_issues()
