@@ -1,8 +1,8 @@
-name: Auto Close Issues
+name: Auto Close Labeled Issues
 
 on:
   issues:
-    types: [labeled, opened, edited]
+    types: [labeled, opened]
   workflow_dispatch:
   schedule:
     - cron: "0 * * * *"
@@ -20,17 +20,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const labelsToClose = ["completed", "wontfix"];
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-              per_page: 100
-            });
-            for (const issue of issues) {
-              if (issue.pull_request) continue;
-              const issueLabels = issue.labels.map(l => typeof l === "string" ? l : l.name);
-              const matchedLabel = issueLabels.find(l => labelsToClose.includes(l));
-              if (matchedLabel) {
+            const issue = context.payload.issue;
+            
+            const shouldClose = (issueLabels) => {
+              return issueLabels.some(l => {
+                const name = typeof l === "string" ? l : l.name;
+                return labelsToClose.includes(name);
+              });
+            };
+            
+            if (issue) {
+              // Triggered by issue event
+              if (issue.pull_request) return;
+              if (issue.state === "open" && shouldClose(issue.labels)) {
+                const matched = issue.labels.map(l => typeof l === "string" ? l : l.name).find(n => labelsToClose.includes(n));
                 await github.rest.issues.update({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -42,8 +45,36 @@ jobs:
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: issue.number,
-                  body: `🤖 Automatically closed: This issue is labeled as ${matchedLabel}.`
+                  body: `🤖 Automatically closed because it was labeled as \`${matched}\`.`
                 });
-                console.log(`Closed issue #${issue.number}: ${issue.title}`);
+                console.log(`Closed issue #${issue.number}`);
+              }
+            } else {
+              // Fallback: scan all open issues (for schedule/manual)
+              const { data: issues } = await github.rest.issues.listForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: "open",
+                per_page: 100
+              });
+              for (const i of issues) {
+                if (i.pull_request) continue;
+                if (shouldClose(i.labels)) {
+                  const matched = i.labels.map(l => typeof l === "string" ? l : l.name).find(n => labelsToClose.includes(n));
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: i.number,
+                    state: "closed",
+                    state_reason: "completed"
+                  });
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: i.number,
+                    body: `🤖 Automatically closed because it was labeled as \`${matched}\`.`
+                  });
+                  console.log(`Closed issue #${i.number}: ${i.title}`);
+                }
               }
             }
