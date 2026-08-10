@@ -1,33 +1,49 @@
-name: Auto Close Labeled Issues
+name: Auto Close Issues
 
 on:
   issues:
     types: [labeled, opened, edited]
-  pull_request:
-    types: [labeled]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 * * * *"
 
 jobs:
-  close-issue:
+  close_issues:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+    permissions:
+      issues: write
+      contents: read
     steps:
-      - name: Close issue
+      - name: Close labeled issues
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const issue_number = context.issue.number;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            await github.rest.issues.update({
-              owner,
-              repo,
-              issue_number,
-              state: 'closed',
-              state_reason: 'completed'
+            const labelsToClose = ["completed", "wontfix"];
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100
             });
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: `Automatically closed issue labeled as ` + context.payload.label.name + ` by automation script.`
-            });
+            for (const issue of issues) {
+              if (issue.pull_request) continue;
+              const issueLabels = issue.labels.map(l => typeof l === "string" ? l : l.name);
+              const matchedLabel = issueLabels.find(l => labelsToClose.includes(l));
+              if (matchedLabel) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: "closed",
+                  state_reason: "completed"
+                });
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `🤖 Automatically closed: This issue is labeled as ${matchedLabel}.`
+                });
+                console.log(`Closed issue #${issue.number}: ${issue.title}`);
+              }
+            }
