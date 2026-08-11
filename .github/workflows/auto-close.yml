@@ -1,33 +1,50 @@
-name: Auto Close Labeled Issues
+name: Auto Close Completed or Wontfix Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled, edited, reopened]
+  pull_request:
+    types: [opened, labeled]
 
 jobs:
   close_issue:
-    if: github.event.label.name == "completed" || github.event.label.name == "wontfix"
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
-      - name: Close issue
-        uses: actions/github-script@v7
+      - name: Check and close issue
+        uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const issue_number = context.issue.number;
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
-              state: "closed"
-            });
-      - name: Comment on closed issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const label = context.payload.label.name;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `Automatically closed issue labeled as .`
-            })
+            const labelsToClose = ["completed", "wontfix"];
+            const item = context.payload.issue || context.payload.pull_request;
+            
+            if (!item) {
+              console.log("No issue or PR found in payload");
+              return;
+            }
+            
+            const labels = (item.labels || []).map(label => typeof label === "string" ? label.toLowerCase() : label.name.toLowerCase());
+            const hasMatchingLabel = labels.some(label => labelsToClose.includes(label));
+            
+            console.log(`Issue #${item.number} labels:`, labels);
+            console.log(`Has matching label (completed/wontfix):`, hasMatchingLabel);
+            
+            if (hasMatchingLabel && item.state === "open") {
+              try {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: item.number,
+                  state: "closed",
+                  state_reason: "completed"
+                });
+                console.log(`Successfully closed issue #${item.number}`);
+              } catch (error) {
+                console.error(`Failed to close issue #${item.number}:`, error);
+              }
+            } else {
+              console.log(`Issue #${item.number} will remain open`);
+            }
