@@ -1,30 +1,28 @@
-"""
-Automated Issue Closing Script
-Closes GitHub issues labeled as 'completed' or 'wontfix'
-"""
 import os
-from github import Github
+import requests
 
-# Configuration
-REPO_NAME = "karthikabinav/auto-issue-close"
-LABELS_TO_CLOSE = ["completed", "wontfix"]
+# GitHub automation script to close issues labeled "completed" or "wontfix"
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO = "karthikabinav/auto-issue-close"
+HEADERS = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
 
 def close_labeled_issues():
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set, using unauthenticated mode (read-only demo)")
-        return
-
-    g = Github(token)
-    repo = g.get_repo(REPO_NAME)
-    issues = repo.get_issues(state="open")
-
+    """Fetch open issues and close those labeled completed or wontfix"""
+    url = f"https://api.github.com/repos/{REPO}/issues?state=open&per_page=100"
+    resp = requests.get(url, headers=HEADERS)
+    issues = resp.json()
     for issue in issues:
-        label_names = [label.name for label in issue.labels]
-        if any(label in LABELS_TO_CLOSE for label in label_names):
-            print(f"Closing issue #{issue.number}: {issue.title} (labels: {label_names})")
-            issue.create_comment(f"Automatically closing issue as it was labeled `{[l for l in label_names if l in LABELS_TO_CLOSE][0]}`.")
-            issue.edit(state="closed")
+        if "pull_request" in issue:
+            continue
+        labels = [label["name"] for label in issue["labels"]]
+        if any(l in ["completed", "wontfix"] for l in labels):
+            issue_num = issue["number"]
+            close_url = f"https://api.github.com/repos/{REPO}/issues/{issue_num}"
+            requests.patch(close_url, headers=HEADERS, json={"state": "closed"})
+            comment_url = f"https://api.github.com/repos/{REPO}/issues/{issue_num}/comments"
+            requests.post(comment_url, headers=HEADERS, json={"body": "This issue has been automatically closed because it was labeled as completed or wontfix."})
+            print(f"Closed issue #{issue_num}")
 
 if __name__ == "__main__":
     close_labeled_issues()
