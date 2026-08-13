@@ -1,45 +1,32 @@
-name: Close labeled issues
+name: Auto Close Issues
 
 on:
   issues:
     types: [labeled]
-  issue_comment:
-    types: [created]
-  schedule:
-    - cron: '0 * * * *'
 
 jobs:
-  close-issue:
+  close_issue:
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        
-      - name: Close issues with completed or wontfix label
-        env:
-          GH_TOKEN: ${{' secrets.GITHUB_TOKEN '}}
-        run: |
-          if [ "${{ github.event_name }}" = "issues" ]; then
-            issue_number="${{ github.event.issue.number }}"
-            echo "Processing issue #$issue_number"
-            labels=$(gh issue view $issue_number --json labels -q '.labels[].name')
-            echo "Labels: $labels"
-            if echo "$labels" | grep -qE '(completed|wontfix)'; then
-              gh issue close $issue_number --reason completed
-              echo "Closed issue #$issue_number"
-            fi
-          fi
-          
-      - name: Close all matching open issues (scheduled)
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{' secrets.GITHUB_TOKEN '}}
-        run: |
-          echo "Checking for open issues with completed or wontfix labels"
-          for label in completed wontfix; do
-            gh issue list --search "label:$label state:open" --json number -q '.[].number' | while read num; do
-              [ -n "$num" ] && gh issue close $num --reason completed && echo "Closed issue #$num with $label label"
-            done
-          done
+      - name: Close completed or wontfix issues
+        if: contains('completed,wontfix', github.event.label.name)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = context.payload.label.name;
+            if (['completed', 'wontfix'].includes(label)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `Automatically closing this issue as it is labeled "${label}".`
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed'
+              });
+            }
