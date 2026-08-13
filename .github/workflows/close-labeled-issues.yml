@@ -1,48 +1,23 @@
 name: Auto Close Labeled Issues
-
-# Runs when a label is added to an issue, and on a daily schedule as a safety net.
 on:
   issues:
-    types: [labeled]
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
-
-permissions:
-  issues: write
-
+    types: [labeled, opened, edited]
+  issue_comment:
+    types: [created]
 jobs:
-  close-labeled-issues:
+  close_if_labeled:
     runs-on: ubuntu-latest
     steps:
-      - name: Close issues labeled completed or wontfix
+      - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v7
         with:
           script: |
-            const CLOSE_LABELS = ["completed", "wontfix"];
-            const issues = await github.paginate(github.rest.issues.listForRepo, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "open",
-              per_page: 100,
-            });
-            for (const issue of issues) {
-              if (issue.pull_request) continue; // skip PRs
-              const labels = issue.labels.map(l => (typeof l === "string" ? l : l.name));
-              if (labels.some(name => CLOSE_LABELS.includes(name))) {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  body: `Automatically closing this issue because it is labeled one of: ${CLOSE_LABELS.join(", ")}.`,
-                });
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  state: "closed",
-                  state_reason: labels.includes("wontfix") ? "not_planned" : "completed",
-                });
-                core.info(`Closed issue #${issue.number}: ${issue.title}`);
-              }
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes('completed') || labels.includes('wontfix')) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                state: 'closed'
+              });
             }
