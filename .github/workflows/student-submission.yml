@@ -1,0 +1,32 @@
+name: Close Labeled Issues Student Submission
+on:
+  issues:
+    types: [opened, labeled, reopened, edited]
+jobs:
+  auto-close:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Auto close if labeled completed or wontfix
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) return;
+            const labels = issue.labels.map(l => l.name);
+            if (labels.includes('completed') || labels.includes('wontfix')) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'Automatically closed because of completed/wontfix label.'
+              });
+            }
