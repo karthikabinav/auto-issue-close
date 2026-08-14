@@ -1,0 +1,40 @@
+name: Auto Close Completed and Wontfix Issues
+on:
+  issues:
+    types: [opened, labeled, reopened]
+  pull_request:
+    types: [opened]
+jobs:
+  auto-close:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Close issues with completed or wontfix label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) return;
+            const labels = issue.labels.map(l => l.name);
+            console.log(`Checking issue #${issue.number} with labels: ${labels.join(, )}`);
+            if (labels.includes(completed) || labels.includes(wontfix)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: closed,
+                state_reason: completed
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 🔒 This issue was automatically closed because it was labeled as `completed` or `wontfix`.\n\nIf this was a mistake, please reopen the issue and remove the label.
+              });
+              console.log(`Closed issue #${issue.number}`);
+            } else {
+              console.log(`Issue #${issue.number} did not match closing criteria`);
+            }
