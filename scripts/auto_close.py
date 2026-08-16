@@ -1,42 +1,30 @@
 #!/usr/bin/env python3
 """
 Automated Issue Closing Script
-
-This script automatically closes GitHub issues labeled as 'completed' or 'wontfix'.
-Use this for GitHub automation workflows.
+Automatically closes GitHub issues labeled as "completed" or "wontfix".
 """
-
 import os
-import sys
+from github import Github
 
-# Configuration
-TARGET_LABELS = ["completed", "wontfix"]
+REPO_NAME = "karthikabinav/auto-issue-close"
+TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close_issue(labels):
-    """Check if issue should be closed based on labels"""
-    label_names = [label.get("name", "").lower() if isinstance(label, dict) else str(label).lower() for label in labels]
-    return any(target in label_names for target in TARGET_LABELS)
-
-def close_issue(owner, repo, issue_number):
-    """
-    Close an issue via GitHub API
-    In a real workflow, this would use PyGithub or requests with GITHUB_TOKEN
-    """
-    print(f"Closing issue #{issue_number} in {owner}/{repo}")
-    print(f"Reason: Issue has completed or wontfix label")
-    return True
-
-def main():
-    print("Automated Issue Closing - GitHub Automation")
-    print("Monitoring for labels: completed, wontfix")
-    print("")
-    print("This script is designed to be used in GitHub Actions workflow")
-    print("Triggered on: issues labeled event")
-    print("")
-    print("Example usage in .github/workflows/auto-close-issues.yml")
-    print("  on:")
-    print("    issues:")
-    print("      types: [labeled]")
+def close_labeled_issues():
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        print("GITHUB_TOKEN not set")
+        return
+    g = Github(token)
+    repo = g.get_repo(REPO_NAME)
+    issues = repo.get_issues(state="open")
+    for issue in issues:
+        labels = {label.name.lower() for label in issue.labels}
+        if labels & TARGET_LABELS:
+            print(f"Closing issue #{issue.number}: {issue.title} with labels {labels}")
+            issue.create_comment("🤖 This issue was automatically closed because it has the `completed` or `wontfix` label.")
+            issue.edit(state="closed")
+        else:
+            print(f"Skipping issue #{issue.number}: labels {labels}")
 
 if __name__ == "__main__":
-    main()
+    close_labeled_issues()
