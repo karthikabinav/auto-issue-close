@@ -1,32 +1,42 @@
+import os
+import requests
+
 """
 Automated Issue Closing Script
-Closes GitHub issues labeled as 'completed' or 'wontfix'
+
+This script automatically closes GitHub issues labeled as 'completed' or 'wontfix'.
+It can be used locally or as part of a GitHub Actions workflow.
 """
-import os
-from github import Github  # Requires PyGithub
 
-# Configuration
-REPO_NAME = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-TOKEN = os.getenv("GITHUB_TOKEN")
-TARGET_LABELS = {"completed", "wontfix"}
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+API_URL = f"https://api.github.com/repos/{REPO}/issues"
 
-def main():
-    if not TOKEN:
-        print("GITHUB_TOKEN not set - running in dry-run mode")
-        print(f"Would close issues in {REPO_NAME} with labels: {TARGET_LABELS}")
-        return
+HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json"
+}
 
-    g = Github(TOKEN)
-    repo = g.get_repo(REPO_NAME)
-    issues = repo.get_issues(state="open")
-    
+def should_close(labels):
+    label_names = [l["name"].lower() if isinstance(l, dict) else l.lower() for l in labels]
+    return "completed" in label_names or "wontfix" in label_names
+
+def close_issues():
+    if not GITHUB_TOKEN:
+        print("GITHUB_TOKEN not set, running in dry-run mode")
+    params = {"state": "open", "per_page": 100}
+    r = requests.get(API_URL, headers=HEADERS, params=params)
+    r.raise_for_status()
+    issues = r.json()
     for issue in issues:
-        labels = {label.name for label in issue.labels}
-        if labels & TARGET_LABELS:
-            matched = labels & TARGET_LABELS
-            print(f"Closing issue #{issue.number}: {issue.title} (labels: {matched})")
-            issue.create_comment(f"✅ Automatically closed because label is: **{matched.pop()}**.")
-            issue.edit(state="closed", state_reason="completed")
+        if should_close(issue.get("labels", [])):
+            number = issue["number"]
+            print(f"Closing issue #{number}: {issue['title']} with labels {[l['name'] for l in issue['labels']]}")
+            if GITHUB_TOKEN:
+                close_url = f"https://api.github.com/repos/{REPO}/issues/{number}"
+                requests.patch(close_url, headers=HEADERS, json={"state": "closed", "state_reason": "completed"})
+                comment_url = close_url + "/comments"
+                requests.post(comment_url, headers=HEADERS, json={"body": "🤖 This issue was automatically closed because it has the `completed` or `wontfix` label."})
 
 if __name__ == "__main__":
-    main()
+    close_issues()
