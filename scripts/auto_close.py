@@ -1,30 +1,24 @@
-#!/usr/bin/env python3
-"""
-Automated Issue Closing Script
-Automatically closes GitHub issues labeled as "completed" or "wontfix".
-"""
 import os
 from github import Github
 
-REPO_NAME = "karthikabinav/auto-issue-close"
-TARGET_LABELS = {"completed", "wontfix"}
+# Automation script to close issues labeled as 'completed' or 'wontfix'
 
-def close_labeled_issues():
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set")
-        return
-    g = Github(token)
+REPO_NAME = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
+
+LABELS_TO_CLOSE = {"completed", "wontfix"}
+
+def main():
+    g = Github(TOKEN)
     repo = g.get_repo(REPO_NAME)
-    issues = repo.get_issues(state="open")
-    for issue in issues:
-        labels = {label.name.lower() for label in issue.labels}
-        if labels & TARGET_LABELS:
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
+        if labels & LABELS_TO_CLOSE:
             print(f"Closing issue #{issue.number}: {issue.title} with labels {labels}")
-            issue.create_comment("🤖 This issue was automatically closed because it has the `completed` or `wontfix` label.")
-            issue.edit(state="closed")
+            issue.create_comment(f"Automatically closing issue with labels: {, .join(labels & LABELS_TO_CLOSE)}")
+            issue.edit(state="closed", state_reason="completed")
         else:
-            print(f"Skipping issue #{issue.number}: labels {labels}")
+            print(f"Skipping issue #{issue.number}: {issue.title} - labels {labels} not in {LABELS_TO_CLOSE}")
 
 if __name__ == "__main__":
-    close_labeled_issues()
+    main()
