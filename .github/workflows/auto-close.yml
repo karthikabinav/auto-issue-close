@@ -18,20 +18,22 @@ jobs:
               return;
             }
             const labels = issue.labels.map(l => l.name.toLowerCase());
-            if (labels.includes('completed') || labels.includes('wontfix')) {
+            console.log(`Issue #${issue.number} labels: ${labels.join(", ")}`);
+            if (labels.includes("completed") || labels.includes("wontfix")) {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                state: 'closed'
+                state: "closed",
+                state_reason: "completed"
               });
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: '🤖 This issue was automatically closed because it was labeled as completed or wontfix.'
+                body: "🤖 This issue was automatically closed by the workflow because it has the `completed` or `wontfix` label."
               });
               console.log(`Closed issue #${issue.number}`);
             } else {
-              console.log(`Issue #${issue.number} does not have relevant labels`);
+              console.log(`Issue #${issue.number} does not have relevant labels, leaving open`);
             }
