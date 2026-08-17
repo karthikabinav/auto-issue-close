@@ -1,55 +1,53 @@
 """
 Automated Issue Closing Script
-Closes issues labeled completed or wontfix
+Closes issues labeled as completed or wontfix
 """
-import os, sys, requests
-TARGET_LABELS = {"completed", "wontfix"}
+import os
+import requests
 
-def get_issues(owner, repo, token):
-    url = f"https://api.github.com/repos/{owner}/{repo}/issues"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+REPO_OWNER = os.getenv("REPO_OWNER", "karthikabinav")
+REPO_NAME = os.getenv("REPO_NAME", "auto-issue-close")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+LABELS_TO_CLOSE = {"completed", "wontfix"}
+
+def get_open_issues():
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues"
+    headers = {}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
     params = {"state": "open", "per_page": 100}
-    resp = requests.get(url, headers=headers, params=params)
-    resp.raise_for_status()
-    return resp.json()
+    response = requests.get(url, headers=headers, params=params)
+    response.raise_for_status()
+    return response.json()
 
-def close_issue(owner, repo, number, token, label):
-    base = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
-    comment_url = base + "/comments"
-    body = "Auto closing issue labeled " + label
-    requests.post(comment_url, headers=headers, json={"body": body})
-    resp = requests.patch(base, headers=headers, json={"state": "closed"})
-    resp.raise_for_status()
-    return resp.json()
+def close_issue(issue_number):
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues/{issue_number}"
+    headers = {}
+    if GITHUB_TOKEN:
+        headers["Authorization"] = f"token {GITHUB_TOKEN}"
+    data = {"state": "closed"}
+    response = requests.patch(url, headers=headers, json=data)
+    response.raise_for_status()
+    print(f"Closed issue #{issue_number}")
+    # Add comment
+    comment_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues/{issue_number}/comments"
+    comment_data = {"body": "This issue was automatically closed because it is labeled as completed or wontfix."}
+    requests.post(comment_url, headers=headers, json=comment_data)
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--owner", required=True)
-    parser.add_argument("--repo", required=True)
-    args = parser.parse_args()
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set", file=sys.stderr)
-        sys.exit(1)
-    issues = get_issues(args.owner, args.repo, token)
-    closed = 0
+    issues = get_open_issues()
     for issue in issues:
         if "pull_request" in issue:
             continue
-        labels = set()
-        for lab in issue.get("labels", []):
-            labels.add(lab["name"])
-        inter = TARGET_LABELS.intersection(labels)
-        if inter:
-            lab = list(inter)[0]
-            print("Closing", issue["number"], issue["title"], "label", lab)
-            close_issue(args.owner, args.repo, issue["number"], token, lab)
-            closed += 1
+        labels = {label["name"] for label in issue.get("labels", [])}
+        if labels & LABELS_TO_CLOSE:
+            print(f"Found issue #{issue[number]} with labels {labels} -> closing")
+            try:
+                close_issue(issue["number"])
+            except Exception as e:
+                print(f"Failed to close #{issue[number]}: {e}")
         else:
-            print("Skip", issue["number"], issue["title"])
-    print("Closed", closed)
+            print(f"Skipping issue #{issue[number]} labels={labels}")
 
 if __name__ == "__main__":
     main()
