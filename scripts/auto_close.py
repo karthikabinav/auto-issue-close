@@ -1,35 +1,22 @@
+"""
+Automated Issue Closing Script
+Closes issues labeled as completed or wontfix
+"""
 import os
 from github import Github
 
-# Initialize GitHub client
-# Requires GITHUB_TOKEN environment variable
-token = os.getenv("GITHUB_TOKEN")
-if not token:
-    raise ValueError("GITHUB_TOKEN environment variable not set")
-
-g = Github(token)
-
-# Get repository (update owner/repo as needed)
-repo_name = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-repo = g.get_repo(repo_name)
-
-# Labels that should trigger auto-close
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
-
-def should_close_issue(issue):
-    """Check if issue has labels that require auto-closing."""
-    labels = {label.name for label in issue.labels}
-    return bool(labels & AUTO_CLOSE_LABELS)
-
-def close_issues():
-    """Close open issues with completed or wontfix labels."""
-    open_issues = repo.get_issues(state="open")
-    for issue in open_issues:
-        if should_close_issue(issue):
-            print(f"Closing issue #{issue.number}: {issue.title} - labels: {[l.name for l in issue.labels]}")
-            issue.create_comment("This issue has been automatically closed because it was labeled as completed or wontfix.")
+def close_labeled_issues(owner, repo):
+    token = os.getenv("GITHUB_TOKEN")
+    g = Github(token)
+    repository = g.get_repo(f"{owner}/{repo}")
+    for label in ["completed", "wontfix"]:
+        for issue in repository.get_issues(state="open", labels=[label]):
+            print(f"Closing #{issue.number}: {issue.title}")
             issue.edit(state="closed")
+            issue.create_comment(f"Auto-closed as \"{label}\".")
 
 if __name__ == "__main__":
-    close_issues()
-    print("Auto-close script completed.")
+    import sys
+    o = sys.argv[1] if len(sys.argv)>1 else "karthikabinav"
+    r = sys.argv[2] if len(sys.argv)>2 else "auto-issue-close"
+    close_labeled_issues(o,r)
