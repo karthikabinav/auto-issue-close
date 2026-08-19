@@ -2,38 +2,31 @@ name: Auto Close Labeled Issues
 
 on:
   issues:
-    types: [labeled, opened, edited, reopened]
-  issue_comment:
-    types: [created]
+    types: [labeled, opened, edited]
 
 jobs:
-  close-issue:
+  auto-close:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
+    if: contains('completed,wontfix', github.event.label.name)
     permissions:
       issues: write
     steps:
-      - name: Close issue
+      - name: Close issue if labeled completed or wontfix
         uses: actions/github-script@v7
         with:
           script: |
-            const issue = context.payload.issue;
-            const labels = issue.labels.map(l => l.name);
-            let reason = "";
-            if (labels.includes("completed")) {
-              reason = "This issue has been marked as completed and is being automatically closed.";
-            } else if (labels.includes("wontfix")) {
-              reason = "This issue has been marked as wontfix and is being automatically closed.";
+            const label = context.payload.label?.name || '';
+            if (label === 'completed' || label === 'wontfix') {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed'
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `🤖 Automatically closed this issue because it was labeled as '${label}'.`
+              });
             }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              body: `🤖 Automated Issue Closing\n\n${reason}\n\nThis action was performed automatically by GitHub Actions.`
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue.number,
-              state: "closed"
-            });
