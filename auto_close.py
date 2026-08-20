@@ -1,24 +1,28 @@
+"""
+Automated Issue Closing Script
+Closes GitHub issues labeled as 'completed' or 'wontfix'
+"""
 import os
 from github import Github
 
-# Script to automatically close issues labeled as completed or wontfix
-# Usage: python auto_close.py
+# This script is intended to be run via GitHub Actions
+# It checks open issues and closes those with completed/wontfix labels
 
-def auto_close_issues(repo_name, token):
+def main():
+    token = os.getenv("GITHUB_TOKEN")
+    repo_name = os.getenv("GITHUB_REPOSITORY")
+    if not token or not repo_name:
+        print("Missing GITHUB_TOKEN or GITHUB_REPOSITORY")
+        return
+    
     g = Github(token)
     repo = g.get_repo(repo_name)
-    issues = repo.get_issues(state='open')
-    for issue in issues:
+    
+    for issue in repo.get_issues(state="open"):
         labels = [label.name for label in issue.labels]
-        if 'completed' in labels or 'wontfix' in labels:
-            print(f"Closing issue #{issue.number}: {issue.title} with labels {labels}")
-            issue.edit(state='closed')
-            issue.create_comment("Automatically closing this issue due to label: " + ", ".join(labels))
+        if "completed" in labels or "wontfix" in labels:
+            print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
+            issue.edit(state="closed")
 
 if __name__ == "__main__":
-    token = os.getenv("GITHUB_TOKEN")
-    repo_name = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-    if token:
-        auto_close_issues(repo_name, token)
-    else:
-        print("GITHUB_TOKEN not set. Set token to run automation.")
+    main()
