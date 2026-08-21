@@ -22,6 +22,7 @@ def main():
         labels = [label.name for label in issue.labels]
         if "completed" in labels or "wontfix" in labels:
             print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
+            issue.create_comment("Auto-closed because label is completed or wontfix.")
             issue.edit(state="closed")
 
 if __name__ == "__main__":
