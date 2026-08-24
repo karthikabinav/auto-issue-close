@@ -1,4 +1,5 @@
 name: Auto Close Labeled Issues
+
 on:
   issues:
     types: [labeled]
@@ -19,4 +20,10 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
               state: 'closed',
+            });
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'This issue was automatically closed because it was labeled as completed or wontfix.'
             });
