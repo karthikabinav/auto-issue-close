@@ -1,14 +1,19 @@
-"""
-Automated Issue Closing Script
-Closes issues labeled as 'completed' or 'wontfix'
-"""
 import os
+from github import Github
 
-# Example logic for automation - to be used in workflow or manually
-TARGET_LABELS = {"completed", "wontfix"}
+# This script automatically closes issues labeled as 'completed' or 'wontfix'
+# Requires GITHUB_TOKEN environment variable
 
-def should_close(labels):
-    return any(label in TARGET_LABELS for label in labels)
+def auto_close_issues(repo_name):
+    g = Github(os.getenv("GITHUB_TOKEN"))
+    repo = g.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = [label.name for label in issue.labels]
+        if "completed" in labels or "wontfix" in labels:
+            print(f"Closing issue #{issue.number}: {issue.title} with labels {labels}")
+            issue.edit(state="closed")
+            issue.create_comment("Automatically closed as labeled as completed/wontfix")
 
 if __name__ == "__main__":
-    print("Auto-close script ready. Target labels:", TARGET_LABELS)
+    repo = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+    auto_close_issues(repo)
