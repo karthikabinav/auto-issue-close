@@ -6,7 +6,7 @@ on:
 
 jobs:
   auto-close:
-    if: contains(github.event.issue.labels.*.name, completed) || contains(github.event.issue.labels.*.name, wontfix)
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -19,12 +19,12 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              state: closed,
-              state_reason: completed
+              state: "closed",
+              state_reason: "completed"
             });
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: Automatically closed because label is completed or wontfix.
+              body: "Automatically closed because label is completed or wontfix."
             });
