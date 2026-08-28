@@ -1,62 +1,34 @@
-#!/usr/bin/env python3
 """
 Automated Issue Closing Script
-Closes issues labeled as 'completed' or 'wontfix'.
-Intended to be run via GitHub Actions on issues events (opened/labeled),
-or on a schedule / manually for testing.
+Closes GitHub issues labeled as 'completed' or 'wontfix'.
+Intended for learning GitHub automation / GitHub Actions.
 """
 import os
-import sys
-import requests
 
-API_URL = "https://api.github.com"
-TARGET_LABELS = {"completed", "wontfix"}
+try:
+    from github import Github
+except ImportError:
+    Github = None
 
-def get_headers():
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set, exiting.")
-        sys.exit(1)
-    return {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-
-def list_open_issues(owner, repo, headers):
-    issues = []
-    page = 1
-    while True:
-        resp = requests.get(f"{API_URL}/repos/{owner}/{repo}/issues", headers=headers, params={"state": "open", "per_page": 100, "page": page})
-        resp.raise_for_status()
-        data = resp.json()
-        if not data:
-            break
-        # Filter out pull requests
-        issues.extend([i for i in data if "pull_request" not in i])
-        page += 1
-    return issues
-
-def close_issue(owner, repo, number, headers):
-    # Add comment
-    requests.post(f"{API_URL}/repos/{owner}/{repo}/issues/{number}/comments", headers=headers, json={"body": "Automatically closed because this issue is labeled as completed or wontfix."})
-    # Close
-    resp = requests.patch(f"{API_URL}/repos/{owner}/{repo}/issues/{number}", headers=headers, json={"state": "closed", "state_reason": "completed"})
-    resp.raise_for_status()
-    print(f"Closed issue #{number}")
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
 def main():
-    repo_full = os.environ.get("GITHUB_REPOSITORY")
-    if repo_full and "/" in repo_full:
-        owner, repo = repo_full.split("/", 1)
-    else:
-        owner = os.environ.get("REPO_OWNER", "karthikabinav")
-        repo = os.environ.get("REPO_NAME", "auto-issue-close")
-    headers = get_headers()
-    for issue in list_open_issues(owner, repo, headers):
-        labels = {l["name"].lower() for l in issue.get("labels", [])}
-        if labels & TARGET_LABELS:
-            close_issue(owner, repo, issue["number"], headers)
+    token = os.getenv("GITHUB_TOKEN")
+    repo_name = os.getenv("GITHUB_REPOSITORY")
+    if not token or not repo_name:
+        print("Missing GITHUB_TOKEN or GITHUB_REPOSITORY env vars")
+        return
+    if Github is None:
+        print("PyGithub not installed")
+        return
+    g = Github(token)
+    repo = g.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
+        if labels & LABELS_TO_CLOSE:
+            print(f"Closing issue #{issue.number}: {issue.title} labels={labels}")
+            issue.create_comment("Auto-closed because it is labeled as completed or wontfix.")
+            issue.edit(state="closed")
 
 if __name__ == "__main__":
     main()
