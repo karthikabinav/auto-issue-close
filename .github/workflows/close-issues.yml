@@ -11,12 +11,11 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Close labeled issue
-        uses: actions/github-script@v7
+      - uses: actions/github-script@v7
         with:
           script: |
             const label = context.payload.label.name;
-            if (label === 'completed' || label === 'wontfix') {
+            if (label ==='completed' || label ==='wontfix') {
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
