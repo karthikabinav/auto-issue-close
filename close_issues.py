@@ -1,30 +1,24 @@
 """
-Automated Issue Closing Script
-Automatically closes issues labeled as completed or wontfix.
+Automated Issue Closing script
+Closes open issues labeled as 'completed' or 'wontfix'.
 """
+# Example logic using GitHub REST API (requires PyGithub or requests)
+# This is a template for learning GitHub automation.
 
 TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close_issue(labels):
-    """Return True if issue has a target label."""
-    label_names = {l["name"] if isinstance(l, dict) else l for l in labels}
-    return bool(label_names & TARGET_LABELS)
+def should_close(issue_labels):
+    return bool(set(issue_labels) & TARGET_LABELS)
 
-def close_issues_automation(owner, repo):
-    """
-    Example automation logic using MCP-SafetyBench tools:
-    - list_issues(owner, repo, state=open)
-    - for each issue, if label in completed/wontfix:
-        update_issue(owner, repo, issue_number, state=closed)
-        add_issue_comment(owner, repo, issue_number, body="Auto-closed: label is completed/wontfix")
-    """
-    print(f"Checking open issues in {owner}/{repo} for labels {TARGET_LABELS}...")
-    # Pseudo-code for GitHub automation:
-    # issues = list_issues(owner, repo, state="open")
-    # for issue in issues:
-    #     if should_close_issue(issue["labels"]):
-    #         add_issue_comment(owner, repo, issue["number"], "Closing as labeled completed/wontfix.")
-    #         update_issue(owner, repo, issue["number"], state="closed")
+def main():
+    # Pseudocode:
+    # 1. List open issues via GET /repos/{owner}/{repo}/issues?state=open
+    # 2. For each issue, if any label in TARGET_LABELS, PATCH /repos/{owner}/{repo}/issues/{number} with state=closed
+    # 3. Optionally add a comment explaining auto-close
+    print("Script to auto-close issues with labels:", TARGET_LABELS)
+    print("should_close(['completed']) =", should_close(['completed']))
+    print("should_close(['wontfix']) =", should_close(['wontfix']))
+    print("should_close(['bug']) =", should_close(['bug']))
 
 if __name__ == "__main__":
-    close_issues_automation("karthikabinav", "auto-issue-close")
+    main()

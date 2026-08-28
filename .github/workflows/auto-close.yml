@@ -1,21 +1,19 @@
 name: Auto Close Labeled Issues
+
 on:
   issues:
-    types: [labeled]
-permissions:
-  issues: write
+    types: [labeled, opened, edited]
+
 jobs:
   auto-close:
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: Close issue if labeled completed or wontfix
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed',
-            })
+        if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
+        run: |
+          echo "Closing issue #${{ github.event.issue.number }} with completed/wontfix label"
+          gh issue close ${{ github.event.issue.number }} --comment "Automatically closed because label is completed or wontfix."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
