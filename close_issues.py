@@ -1,24 +1,35 @@
 """
 Automated Issue Closing script
-Closes open issues labeled as 'completed' or 'wontfix'.
+Closes issues labeled as "completed" or "wontfix".
 """
-# Example logic using GitHub REST API (requires PyGithub or requests)
-# This is a template for learning GitHub automation.
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
-TARGET_LABELS = {"completed", "wontfix"}
+def should_close_issue(labels):
+    """Return True if issue has a label that triggers auto-close."""
+    return any(label in AUTO_CLOSE_LABELS for label in labels)
 
-def should_close(issue_labels):
-    return bool(set(issue_labels) & TARGET_LABELS)
-
-def main():
-    # Pseudocode:
-    # 1. List open issues via GET /repos/{owner}/{repo}/issues?state=open
-    # 2. For each issue, if any label in TARGET_LABELS, PATCH /repos/{owner}/{repo}/issues/{number} with state=closed
-    # 3. Optionally add a comment explaining auto-close
-    print("Script to auto-close issues with labels:", TARGET_LABELS)
-    print("should_close(['completed']) =", should_close(['completed']))
-    print("should_close(['wontfix']) =", should_close(['wontfix']))
-    print("should_close(['bug']) =", should_close(['bug']))
+def process_issues(issues):
+    """
+    issues: iterable of dicts with "number", "title", "labels", "state"
+    Returns list of issue numbers that should be closed.
+    """
+    to_close = []
+    for issue in issues:
+        labels = issue.get("labels", [])
+        # support both string list and dict list from GitHub API
+        label_names = [l if isinstance(l, str) else l.get("name") for l in labels]
+        if issue.get("state") == "open" and should_close_issue(label_names):
+            to_close.append(issue["number"])
+    return to_close
 
 if __name__ == "__main__":
-    main()
+    # Example usage with GitHub API (pseudo-code):
+    # from github import Github
+    # g = Github(token)
+    # repo = g.get_repo("owner/auto-issue-close")
+    # for issue in repo.get_issues(state="open"):
+    #     label_names = [l.name for l in issue.labels]
+    #     if should_close_issue(label_names):
+    #         issue.edit(state="closed")
+    #         print(f"Closed issue #{issue.number}: {issue.title}")
+    print("Auto-close script ready. Monitors labels:", AUTO_CLOSE_LABELS)
