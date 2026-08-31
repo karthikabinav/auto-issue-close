@@ -1,14 +1,15 @@
-"""
-Automated Issue Closing script
-Closes issues labeled as completed or wontfix.
-"""
-import os
-# This script is intended to run via GitHub Actions.
-# Logic: list open issues, if label is completed or wontfix, close it.
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
+# Automation script to close issues labeled as completed or wontfix
+# This script is for educational purposes - review before running
+# It lists open issues and closes those with target labels
 
-def should_close(labels):
-    return any(l in AUTO_CLOSE_LABELS for l in labels)
+TARGET_LABELS = {"completed", "wontfix"}
 
-if __name__ == "__main__":
-    print("Automation script: closes issues labeled as completed or wontfix")
+def should_close(issue_labels):
+    return bool(set(issue_labels) & TARGET_LABELS)
+
+# Example usage with GitHub API:
+# 1. List open issues in karthikabinav/auto-issue-close
+# 2. For each issue, if labels intersect TARGET_LABELS, close it with a comment
+# 3. Leave other labels (e.g., bug) open for manual triage
+
+print("Script ready: closes issues labeled completed or wontfix")
