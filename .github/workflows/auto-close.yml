@@ -1,32 +1,40 @@
 name: Auto Close Labeled Issues
-
 on:
   issues:
-    types: [labeled, opened]
+    types: [labeled]
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
 
 jobs:
   auto-close:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     steps:
-      - name: Close issue
+      - name: Close issues labeled completed or wontfix
         uses: actions/github-script@v7
         with:
           script: |
-            github.rest.issues.update({
+            const labelsToClose = ["completed", "wontfix"];
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed',
-              state_reason: 'completed'
-            })
-      - name: Add comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: 'This issue was automatically closed because it was labeled as completed or wontfix.'
-            })
+              state: "open"
+            });
+            for (const issue of issues.data) {
+              if (issue.pull_request) continue;
+              const labels = issue.labels.map(l => l.name);
+              if (labels.some(l => labelsToClose.includes(l))) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: "closed"
+                });
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: `Automatically closed as labeled \`${labels.find(l => labelsToClose.includes(l))}\`.`
+                });
+              }
+            }
