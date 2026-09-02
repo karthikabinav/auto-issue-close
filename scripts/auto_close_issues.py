@@ -1,30 +1,27 @@
 """
 Automated Issue Closing Script
-Closes issues labeled as completed or wontfix.
+Automatically closes issues labeled as completed or wontfix.
 """
-import os
-# Example using GitHub REST API via MCP tools:
-# - list_issues(owner, repo, state=open)
-# - update_issue(owner, repo, issue_number, state=closed)
-TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close(labels):
-    return any(label in TARGET_LABELS for label in labels)
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
-def main():
-    print("This script demonstrates logic for auto-closing issues.")
-    print(f"Target labels for auto-close: {TARGET_LABELS}")
-    # In a real workflow, you would:
-    # 1. List open issues
-    # 2. For each issue, check labels
-    # 3. If label in TARGET_LABELS, call update_issue with state=closed
-    # Example pseudo-code:
-    # issues = list_issues(owner, repo, state="open")
+def should_close_issue(labels):
+    """Return True if issue has a label that triggers auto-close."""
+    label_names = {l["name"] if isinstance(l, dict) else l for l in labels}
+    return bool(label_names & AUTO_CLOSE_LABELS)
+
+def close_issues_for_repo(owner, repo):
+    """
+    Example automation logic using GitHub API:
+    - List open issues
+    - If issue has label completed or wontfix, close it
+    """
+    # Pseudo-code for GitHub workflow:
+    # issues = github.rest.issues.listForRepo({owner, repo, state: "open"})
     # for issue in issues:
-    #     labels = [l["name"] for l in issue["labels"]]
-    #     if should_close(labels):
-    #         update_issue(owner, repo, issue["number"], state="closed")
-    #         print(f"Closed issue #{issue["number"]}: {issue["title"]}")
+    #     if should_close_issue(issue.labels):
+    #         github.rest.issues.update({owner, repo, issue_number: issue.number, state: "closed"})
+    print(f"Checking issues in {owner}/{repo} for labels {AUTO_CLOSE_LABELS}")
 
 if __name__ == "__main__":
-    main()
+    close_issues_for_repo("karthikabinav", "auto-issue-close")
