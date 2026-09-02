@@ -1,17 +1,26 @@
-"""Script to automatically close issues labeled as completed or wontfix."""
-import os
-# Labels that trigger auto-close
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
+"""
+Automation script to close issues labeled as completed or wontfix.
+"""
+# This script demonstrates logic for closing issues.
+# In production, it would use the GitHub API to list open issues
+# and close those with labels completed or wontfix.
 
-def should_close(labels):
-    return any(l in AUTO_CLOSE_LABELS for l in labels)
+TARGET_LABELS = {"completed", "wontfix"}
 
-def close_labeled_issues(repo_owner, repo_name):
-    """Pseudo-code using GitHub API:
-    - list open issues
-    - if issue has completed or wontfix label, close it with comment
-    """
-    print(f"Checking open issues in {repo_owner}/{repo_name} for {AUTO_CLOSE_LABELS}")
+def should_close_issue(labels):
+    """Return True if issue has completed or wontfix label."""
+    return bool(set(labels) & TARGET_LABELS)
+
+def main():
+    # Example placeholder - actual implementation would call GitHub API
+    # e.g., list open issues, check labels, update state to closed
+    print("Checking open issues for labels:", TARGET_LABELS)
+    # Pseudo:
+    # for issue in repo.get_issues(state=open):
+    #     labels = [l.name for l in issue.labels]
+    #     if should_close_issue(labels):
+    #         issue.edit(state=closed)
+    #         print(f"Closed issue #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
-    close_labeled_issues("karthikabinav", "auto-issue-close")
+    main()
