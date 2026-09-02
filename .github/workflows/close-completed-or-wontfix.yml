@@ -1,0 +1,32 @@
+name: Close completed or wontfix issues
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  close-labeled-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issue when it has a terminal label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const terminalLabels = new Set(["completed", "wontfix"]);
+            const issueLabels = context.payload.issue.labels.map(label => label.name);
+
+            if (!issueLabels.some(label => terminalLabels.has(label))) {
+              core.info("Issue does not have a terminal label; leaving it open.");
+              return;
+            }
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: "closed"
+            });
