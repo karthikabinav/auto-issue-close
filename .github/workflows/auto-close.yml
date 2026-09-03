@@ -1,17 +1,17 @@
 name: Auto Close Labeled Issues
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
 
 jobs:
   auto-close:
+    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     permissions:
       issues: write
     steps:
-      - name: Close issue if labeled completed or wontfix
-        uses: actions/github-script@v6
+      - name: Close issue when labeled completed or wontfix
+        uses: actions/github-script@v7
         with:
           script: |
             github.rest.issues.update({
