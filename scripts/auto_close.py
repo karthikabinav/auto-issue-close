@@ -1,29 +1,33 @@
 """
 Automated Issue Closing script
-Closes issues labeled as completed or wontfix.
+Automatically closes issues labeled as completed or wontfix.
 """
 import os
-from github import Github
 
-REPO = "karthikabinav/auto-issue-close"
-TARGET_LABELS = {"completed", "wontfix"}
+# Labels that trigger auto-close
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
-def main():
-    token = os.getenv("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set")
-        return
-    g = Github(token)
-    repo = g.get_repo(REPO)
-    issues = repo.get_issues(state="open")
-    for issue in issues:
-        labels = {l.name for l in issue.labels}
-        if labels & TARGET_LABELS:
-            print(f"Closing issue #{issue.number}: {issue.title} labels={labels}")
-            issue.create_comment("Auto-closing: labeled as completed/wontfix.")
-            issue.edit(state="closed")
-        else:
-            print(f"Keeping open #{issue.number}: {issue.title}")
+def should_close_issue(labels):
+    """Return True if issue has a label that should trigger auto-close."""
+    label_names = {lbl["name"].lower() if isinstance(lbl, dict) else lbl.lower() for lbl in labels}
+    return bool(label_names & AUTO_CLOSE_LABELS)
+
+def close_issues_for_repo(owner, repo, token=None):
+    """
+    Example automation logic using GitHub API.
+    In GitHub Actions, this is handled by the workflow in .github/workflows/auto-close.yml
+    """
+    # Placeholder for GitHub API integration
+    # from github import Github
+    # g = Github(token or os.getenv("GITHUB_TOKEN"))
+    # r = g.get_repo(f"{owner}/{repo}")
+    # for issue in r.get_issues(state="open"):
+    #     labels = [l.name for l in issue.labels]
+    #     if should_close_issue(labels):
+    #         issue.create_comment(f"Auto-closing: label {[l for l in labels if l.lower() in AUTO_CLOSE_LABELS]} indicates completion.")
+    #         issue.edit(state="closed")
+    #         print(f"Closed #{issue.number}: {issue.title}")
+    print(f"Would process open issues in {owner}/{repo} and close those labeled {AUTO_CLOSE_LABELS}")
 
 if __name__ == "__main__":
-    main()
+    close_issues_for_repo("karthikabinav", "auto-issue-close")
