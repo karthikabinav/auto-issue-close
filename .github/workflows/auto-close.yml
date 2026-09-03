@@ -6,7 +6,7 @@ on:
 jobs:
   auto-close:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, completed) || contains(github.event.issue.labels.*.name, wontfix)
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     permissions:
       issues: write
     steps:
@@ -18,5 +18,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              state: closed
+              state: 'closed'
             })
