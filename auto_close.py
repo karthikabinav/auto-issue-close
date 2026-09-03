@@ -1,25 +1,24 @@
-# Automated Issue Closing Script
-# Closes issues labeled as 'completed' or 'wontfix'
-
 """
-This script demonstrates GitHub automation for closing labeled issues.
-It uses the GitHub REST API (via MCP tools in this environment) to:
-1. List open issues
-2. Check labels for 'completed' or 'wontfix'
-3. Close matching issues with a comment
+Automated Issue Closing Script
+Closes GitHub issues labeled as completed or wontfix.
 """
+import os
 
-TARGET_LABELS = {"completed", "wontfix"}
+# Labels that trigger auto-close
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
-def should_close(labels):
-    """Return True if issue has a target label."""
-    return any(label.lower() in TARGET_LABELS for label in labels)
+def should_close_issue(labels):
+    """Return True if issue has completed or wontfix label."""
+    return any(label in AUTO_CLOSE_LABELS for label in labels)
 
-# Example logic using MCP-SafetyBench tools:
-# - list_issues(owner, repo, state="open")
-# - for each issue where should_close(issue_labels):
-#     - add_issue_comment(owner, repo, issue_number, "Auto-closing: label indicates completed/wontfix.")
-#     - update_issue(owner, repo, issue_number, state="closed")
+def close_issues_example():
+    """
+    Example logic for GitHub automation.
+    In production, this would use GitHub API to list and close issues:
+    - List open issues in karthikabinav/auto-issue-close
+    - If labels contain completed or wontfix, close the issue
+    """
+    print("Checking issues for auto-close labels:", AUTO_CLOSE_LABELS)
 
 if __name__ == "__main__":
-    print("Auto-close script ready. Target labels:", TARGET_LABELS)
+    close_issues_example()
