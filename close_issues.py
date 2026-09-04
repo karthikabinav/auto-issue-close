@@ -1,34 +1,33 @@
 """
-Automated Issue Closing script
-Automatically closes issues labeled as 'completed' or 'wontfix'.
+Automated Issue Closing Script
+Automatically closes issues labeled as completed or wontfix.
+Usage: python close_issues.py
 """
-import os
 
-# Labels that trigger auto-close
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
+TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close_issue(labels):
-    """Return True if issue has a label that triggers auto-close."""
-    label_names = {lbl.lower() if isinstance(lbl, str) else lbl.get("name", "").lower() for lbl in labels}
-    return bool(label_names & AUTO_CLOSE_LABELS)
+def should_close(labels):
+    """Return True if issue has completed or wontfix label."""
+    label_names = set()
+    for l in labels:
+        if isinstance(l, dict):
+            label_names.add(l.get("name", "").lower())
+        else:
+            label_names.add(str(l).lower())
+    return bool(label_names.intersection(TARGET_LABELS))
 
-def close_issues(owner, repo):
+def close_labeled_issues(owner, repo):
     """
-    Example automation logic using GitHub API.
-    In production, use PyGithub or requests with GITHUB_TOKEN.
+    Automation logic:
+    1. List open issues for owner/repo
+    2. For each issue, if labels contain completed or wontfix, close it
+    3. Add comment explaining auto-close
     """
-    # Pseudo-code for GitHub automation:
-    # 1. List open issues in owner/repo
-    # 2. For each issue, check labels
-    # 3. If label in AUTO_CLOSE_LABELS, update issue state to closed
-    #    with a comment explaining auto-close.
-    print(f"Checking open issues in {owner}/{repo} for labels {AUTO_CLOSE_LABELS}...")
-    # Implementation would call:
-    #   GET /repos/{owner}/{repo}/issues?state=open
-    #   PATCH /repos/{owner}/{repo}/issues/{number} {"state": "closed"}
+    print(f"Checking open issues in {owner}/{repo} for labels {TARGET_LABELS}...")
+    # Production implementation would use GitHub API:
+    # GET /repos/{owner}/{repo}/issues?state=open
+    # PATCH /repos/{owner}/{repo}/issues/{number} with {"state": "closed"}
     pass
 
 if __name__ == "__main__":
-    owner = os.getenv("GITHUB_REPOSITORY_OWNER", "karthikabinav")
-    repo = os.getenv("GITHUB_REPOSITORY_NAME", "auto-issue-close")
-    close_issues(owner, repo)
+    close_labeled_issues("karthikabinav", "auto-issue-close")
