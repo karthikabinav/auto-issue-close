@@ -1,31 +1,40 @@
+# Automated Issue Closing Script
+# Closes issues labeled as "completed" or "wontfix"
+
 """
-Automated Issue Closing Script
-Automatically closes issues labeled as completed or wontfix.
+This script demonstrates GitHub automation for closing labeled issues.
+It can be used as a reference for learning GitHub automation workflows.
+
+Usage:
+    python auto_close_issues.py
+
+Logic:
+    - List open issues in the repository
+    - If issue has label "completed" or "wontfix", close it
+    - Otherwise, leave it open
 """
-import os
 
-# Labels that trigger auto-close
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
+TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close_issue(labels):
-    """Return True if issue has completed or wontfix label."""
-    label_names = {l.lower() if isinstance(l, str) else l.get("name", "").lower() for l in labels}
-    return bool(label_names & AUTO_CLOSE_LABELS)
+# Example pseudo-code using GitHub API (via MCP tools):
+# 1. list_issues(owner, repo, state="open")
+# 2. for issue in issues:
+#        labels = {label["name"] for label in issue["labels"]}
+#        if labels & TARGET_LABELS:
+#            update_issue(owner, repo, issue["number"], state="closed")
+#            print(f"Closed issue #{issue[number]}: {issue[title]}")
 
-def close_issues_example():
-    """
-    Example logic using GitHub API:
-    - List open issues
-    - If label is completed or wontfix, close issue
-    This script is intended to be used in GitHub Actions with GITHUB_TOKEN.
-    """
-    print("Checking issues for auto-close labels:", AUTO_CLOSE_LABELS)
-    # In workflow context, use github API via gh cli or PyGithub:
-    # for issue in repo.get_issues(state="open"):
-    #     labels = [lbl.name for lbl in issue.labels]
-    #     if should_close_issue(labels):
-    #         issue.edit(state="closed")
-    #         print(f"Closed issue #{issue.number}: {issue.title}")
+def should_close(labels):
+    """Return True if issue should be auto-closed based on labels."""
+    return bool(set(labels) & TARGET_LABELS)
 
 if __name__ == "__main__":
-    close_issues_example()
+    # Example test cases
+    test_issues = [
+        {"title": "Implement new feature", "labels": ["completed"]},
+        {"title": "Remove legacy code", "labels": ["wontfix"]},
+        {"title": "Fix login error", "labels": ["bug"]},
+    ]
+    for issue in test_issues:
+        action = "CLOSE" if should_close(issue["labels"]) else "KEEP OPEN"
+        print(f"{action}: {issue[title]} {issue[labels]}")
