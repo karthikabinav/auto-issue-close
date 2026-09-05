@@ -1,33 +1,26 @@
 """
-Automated Issue Closing Script
-Automatically closes issues labeled as completed or wontfix.
-Usage: python close_issues.py
+Automation script to close issues labeled as completed or wontfix.
 """
+# This script demonstrates automation logic for closing labeled issues.
+# In production, it would use the GitHub API to list and close issues.
 
 TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close(labels):
-    """Return True if issue has completed or wontfix label."""
-    label_names = set()
-    for l in labels:
-        if isinstance(l, dict):
-            label_names.add(l.get("name", "").lower())
-        else:
-            label_names.add(str(l).lower())
-    return bool(label_names.intersection(TARGET_LABELS))
+def should_close_issue(labels):
+    """Return True if issue should be auto-closed based on labels."""
+    return any(label.lower() in TARGET_LABELS for label in labels)
 
-def close_labeled_issues(owner, repo):
-    """
-    Automation logic:
-    1. List open issues for owner/repo
-    2. For each issue, if labels contain completed or wontfix, close it
-    3. Add comment explaining auto-close
-    """
-    print(f"Checking open issues in {owner}/{repo} for labels {TARGET_LABELS}...")
-    # Production implementation would use GitHub API:
-    # GET /repos/{owner}/{repo}/issues?state=open
-    # PATCH /repos/{owner}/{repo}/issues/{number} with {"state": "closed"}
-    pass
+def get_issues_to_close(issues):
+    """Filter issues that should be closed."""
+    return [issue for issue in issues if should_close_issue(issue.get("labels", []))]
 
 if __name__ == "__main__":
-    close_labeled_issues("karthikabinav", "auto-issue-close")
+    # Example usage - in real automation this would call GitHub API
+    sample_issues = [
+        {"title": "Implement new feature", "labels": ["completed"]},
+        {"title": "Remove legacy code", "labels": ["wontfix"]},
+        {"title": "Fix login error", "labels": ["bug"]},
+    ]
+    to_close = get_issues_to_close(sample_issues)
+    for issue in to_close:
+        print(f"Closing issue: {issue["title"]} with labels {issue["labels"]}")
