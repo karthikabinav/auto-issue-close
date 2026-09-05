@@ -1,28 +1,17 @@
-"""
-Automated Issue Closing Script
-Closes issues labeled as completed or wontfix.
-"""
-AUTO_CLOSE_LABELS = {"completed", "wontfix"}
+"""Script to automatically close issues labeled as completed or wontfix."""
+# This script is intended to be used in GitHub Actions or manually.
+# It closes open issues that have the labels "completed" or "wontfix".
+
+import os
+
+TARGET_LABELS = {"completed", "wontfix"}
 
 def should_close(labels):
-    """Return True if issue should be auto-closed based on labels."""
-    return any(label.lower() in AUTO_CLOSE_LABELS for label in labels)
+    return any(lbl in TARGET_LABELS for lbl in labels)
 
-def main():
-    print("Auto-close script: closes issues labeled as completed or wontfix")
-    sample_issues = [
-        {"number": 1, "title": "Implement new feature", "labels": ["completed"]},
-        {"number": 2, "title": "Remove legacy code", "labels": ["wontfix"]},
-        {"number": 3, "title": "Fix login error", "labels": ["bug"]},
-    ]
-    for issue in sample_issues:
-        num = issue["number"]
-        title = issue["title"]
-        labels = issue["labels"]
-        if should_close(labels):
-            print(f"Would close #{num}: {title} labels={labels}")
-        else:
-            print(f"Would keep open #{num}: {title} labels={labels}")
+# Example GitHub Actions workflow usage:
+# See .github/workflows/auto-close.yml for automation.
 
 if __name__ == "__main__":
-    main()
+    print("Automation script for closing labeled issues.")
+    print(f"Target labels: {TARGET_LABELS}")
