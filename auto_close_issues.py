@@ -1,23 +1,33 @@
-# Automated Issue Closing script
-# Closes issues labeled as "completed" or "wontfix"
+"""
+Automation script to automatically close issues labeled as completed or wontfix.
+"""
+import os
 
-TARGET_LABELS = {"completed", "wontfix"}
+# Labels that trigger auto-close
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
-def should_close(issue_labels):
-    """Return True if issue should be auto-closed based on labels."""
-    return bool(TARGET_LABELS.intersection(set(issue_labels)))
+def should_close_issue(labels):
+    """Return True if issue has a label that triggers auto-close."""
+    label_names = {l["name"] if isinstance(l, dict) else l for l in labels}
+    return bool(label_names & AUTO_CLOSE_LABELS)
 
-def close_issues_automation(repo_owner, repo_name):
+def close_issues_for_repo(owner, repo):
     """
-    Example automation logic:
+    Pseudo-implementation using GitHub API:
     - List open issues
-    - For each issue, if it has label "completed" or "wontfix", close it
+    - For each issue with label completed or wontfix, close it
     """
-    # In a real GitHub Action, you would use the GitHub API here:
-    # e.g., github.rest.issues.listForRepo() then github.rest.issues.update(state="closed")
-    print(f"Checking open issues in {repo_owner}/{repo_name} for labels {TARGET_LABELS}...")
-    # Placeholder for API integration
-    pass
+    print(f"Checking open issues in {owner}/{repo} for labels {AUTO_CLOSE_LABELS}...")
+    # Example with PyGithub (to be used in workflow):
+    # from github import Github
+    # g = Github(os.environ["GITHUB_TOKEN"])
+    # r = g.get_repo(f"{owner}/{repo}")
+    # for issue in r.get_issues(state="open"):
+    #     if should_close_issue([l.name for l in issue.labels]):
+    #         issue.edit(state="closed")
+    #         print(f"Closed issue #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
-    close_issues_automation("karthikabinav", "auto-issue-close")
+    owner = os.environ.get("GITHUB_REPOSITORY_OWNER", "karthikabinav")
+    repo = os.environ.get("GITHUB_REPOSITORY_NAME", "auto-issue-close")
+    close_issues_for_repo(owner, repo)
