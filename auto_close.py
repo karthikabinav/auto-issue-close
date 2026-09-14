@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Automation script to automatically close issues labeled as completed or wontfix."""
+import os
 AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
 def should_close_issue(labels):
