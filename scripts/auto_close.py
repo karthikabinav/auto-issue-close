@@ -1,20 +1,41 @@
+#!/usr/bin/env python3
 """
-Automation script to automatically close issues labeled as completed or wontfix.
+Automated Issue Closing script
+Closes issues labeled as 'completed' or 'wontfix'.
 """
 import os
+import requests
 
-# In GitHub Actions, this logic is handled by .github/workflows/auto-close.yml
-# This script documents the automation logic for local testing.
+REPO = os.getenv("GITHUB_REPOSITORY")  # format: owner/repo
+TOKEN = os.getenv("GITHUB_TOKEN")
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
-TARGET_LABELS = {"completed", "wontfix"}
+def list_open_issues(owner, repo):
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues?state=open"
+    headers = {"Authorization": f"token {TOKEN}"} if TOKEN else {}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
 
-def should_close(issue_labels):
-    return any(label in TARGET_LABELS for label in issue_labels)
+def close_issue(owner, repo, issue_number):
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues/{issue_number}"
+    headers = {"Authorization": f"token {TOKEN}"} if TOKEN else {}
+    data = {"state": "closed"}
+    response = requests.patch(url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()
 
-def close_issues_example():
-    # Example placeholder - in production, use GitHub API:
-    # e.g., github.rest.issues.update(..., state="closed")
-    print("Checking issues for labels:", TARGET_LABELS)
+def main():
+    if not REPO:
+        print("GITHUB_REPOSITORY not set")
+        return
+    owner, repo = REPO.split("/")
+    issues = list_open_issues(owner, repo)
+    for issue in issues:
+        labels = {label["name"] for label in issue.get("labels", [])}
+        if labels & LABELS_TO_CLOSE:
+            print(f"Closing issue #{issue[number]} with labels {labels}")
+            close_issue(owner, repo, issue["number"])
 
 if __name__ == "__main__":
-    close_issues_example()
+    main()
