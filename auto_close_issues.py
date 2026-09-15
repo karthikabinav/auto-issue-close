@@ -1,16 +1,21 @@
-# Automated Issue Closing
-# Closes issues labeled as completed or wontfix
+"""Automatically close issues labeled completed or wontfix via GitHub API."""
+import os
+from github import Github
 
-CLOSE_LABELS = {"completed", "wontfix"}
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
-def should_close_issue(labels):
-    """Return True if issue has a label that triggers auto-close."""
-    return any(label.lower() in CLOSE_LABELS for label in labels)
-
-# Example usage with GitHub API:
-# - List open issues in the repository
-# - For each issue, if should_close_issue(issue_labels): close the issue
-# This script is intended as a learning example for GitHub automation.
+def main():
+    token = os.environ.get("GITHUB_TOKEN")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
+    if not token or not repo_name:
+        raise SystemExit("GITHUB_TOKEN and GITHUB_REPOSITORY required")
+    gh = Github(token)
+    repo = gh.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
+        if labels & LABELS_TO_CLOSE:
+            issue.edit(state="closed")
+            print(f"Closed #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
-    print("Check open issues and close those labeled completed or wontfix")
+    main()
