@@ -7,6 +7,5 @@ def should_close_issue(labels):
     label_names = {l.lower() if isinstance(l, str) else l.get("name", "").lower() for l in labels}
     return bool(label_names & AUTO_CLOSE_LABELS)
 
-# GitHub Actions workflow .github/workflows/auto-close.yml uses github-script to close issues with these labels
 if __name__ == "__main__":
     print(f"Checking issues for auto-close labels: {AUTO_CLOSE_LABELS}")
