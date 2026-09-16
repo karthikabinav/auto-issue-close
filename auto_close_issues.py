@@ -14,7 +14,7 @@ def main():
     for issue in resp.json():
         labels = {label["name"] for label in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue[chr(39)+chr(110)+chr(117)+chr(109)+chr(98)+chr(101)+chr(114)+chr(39)]}", headers=headers, json={"state": "closed"})
+            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue["number"]}", headers=headers, json={"state": "closed"})
 
 if __name__ == "__main__":
     main()
