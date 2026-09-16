@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Automatically closes issues labeled as completed or wontfix
+"""Automatically closes issues labeled as completed or wontfix."""
 import os
 import requests
 
