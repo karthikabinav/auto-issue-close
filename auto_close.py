@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Automatically close issues labeled completed or wontfix."""
 import os
 from github import Github
@@ -16,7 +15,7 @@ def main():
         labels = {label.name for label in issue.labels}
         if labels & LABELS_TO_CLOSE:
             issue.edit(state="closed")
-            print(f"Closed #{issue.number}: {issue.title}")
+            print(f"Closed issue #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
     main()
