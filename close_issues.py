@@ -1,18 +1,20 @@
+"""Automatically close issues labeled as completed or wontfix."""
 import os
 from github import Github
 
-LABELS_TO_CLOSE = ["completed", "wontfix"]
+REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
+TARGET_LABELS = {"completed", "wontfix"}
 
 def main():
-    token = os.getenv("GITHUB_TOKEN")
-    repo_name = os.getenv("GITHUB_REPOSITORY")
-    g = Github(token)
-    repo = g.get_repo(repo_name)
+    g = Github(TOKEN)
+    repo = g.get_repo(REPO)
     for issue in repo.get_issues(state="open"):
-        labels = [l.name for l in issue.labels]
-        if any(label in LABELS_TO_CLOSE for label in labels):
+        labels = {label.name for label in issue.labels}
+        if labels & TARGET_LABELS:
+            print(f"Closing #{issue.number} {issue.title} labels={labels}")
+            issue.create_comment("Automatically closing this issue as completed/wontfix.")
             issue.edit(state="closed")
-            print(f"Closed issue #{issue.number}: {issue.title}")
 
 if __name__ == "__main__":
     main()
