@@ -1,11 +1,15 @@
 name: Auto Close Issues
 on:
   issues:
-    types: [labeled]
+    types: [labeled, opened]
 jobs:
   close-issue:
     runs-on: ubuntu-latest
-    if: github.event.label.name == completed || github.event.label.name == wontfix
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
+    permissions:
+      issues: write
     steps:
-      - name: Close issue labeled completed or wontfix
-        run: echo Closing completed wontfix issue
+      - name: Close issue
+        uses: actions-ecosystem/action-close-issue@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

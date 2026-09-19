@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
 """Automatically close issues labeled completed or wontfix."""
-import os, requests
-OWNER=os.getenv("GITHUB_OWNER", "karthikabinav")
-REPO=os.getenv("GITHUB_REPO", "auto-issue-close")
-TOKEN=os.getenv("GITHUB_TOKEN")
-LABELS_TO_CLOSE={"completed", "wontfix"}
-HEADERS={"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github.v3+json"} if TOKEN else {}
+import os
+from github import Github
+
+LABELS_TO_CLOSE = {"completed", "wontfix"}
 
 def main():
-    url=f"https://api.github.com/repos/{OWNER}/{REPO}/issues?state=open&per_page=100"
-    issues=requests.get(url, headers=HEADERS).json()
-    for issue in issues:
-        labels={l.get("name") for l in issue.get("labels", [])}
+    token = os.environ.get("GITHUB_TOKEN")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
+    gh = Github(token) if token else Github()
+    repo = gh.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue[chr(39)+"number"+chr(39)] if False else issue["number"]}", headers=HEADERS, json={"state": "closed"})
-            print(f"Closed #{issue["number"]}: {issue["title"]}")
-if __name__=="__main__":
+            issue.edit(state="closed")
+            print(f"Closed #{issue.number}: {issue.title} labels={labels}")
+
+if __name__ == "__main__":
     main()
