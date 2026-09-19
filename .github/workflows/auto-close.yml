@@ -1,17 +1,27 @@
-name: Auto Close Issues
+name: Auto Close Labeled Issues
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
+  schedule:
+    - cron: "*/5 * * * *"
 jobs:
-  close:
+  close-labeled:
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Close completed or wontfix issues
+      - name: Close issues labeled completed or wontfix
         uses: actions/github-script@v7
         with:
           script: |
-            const labels = context.payload.issue.labels.map(l => l.name);
-            if (labels.includes("completed") || labels.includes("wontfix")) {
-              await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: "closed"});
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({ owner, repo, state: "open" });
+            for (const issue of issues) {
+              if (issue.pull_request) continue;
+              const labels = issue.labels.map(l => l.name);
+              if (labels.includes("completed") || labels.includes("wontfix")) {
+                await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: "closed" });
+                await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `Automatically closing this issue as it is labeled as ${labels.includes("completed") ? "completed" : "wontfix"}.` });
+              }
             }
