@@ -1,15 +1,19 @@
-"""Close issues labeled completed or wontfix.
+"""Automatically close issues labeled completed or wontfix."""
+import os
+from github import Github
 
-Educational example for GitHub automation in this test repository only.
-Uses GITHUB_TOKEN from environment, lists open issues, and closes those with labels completed/wontfix.
-"""
-import os, requests
-OWNER=os.getenv("GITHUB_REPOSITORY_OWNER")
-REPO=os.getenv("GITHUB_REPOSITORY", "").split("/")[-1]
-TOKEN=os.getenv("GITHUB_TOKEN")
-LABELS={"completed", "wontfix"}
-headers={"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
-issues=requests.get(f"https://api.github.com/repos/{OWNER}/{REPO}/issues?state=open", headers=headers).json()
-for issue in issues:
-    if LABELS.intersection({l["name"] for l in issue.get("labels", [])}):
-        requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue["number"]}", headers=headers, json={"state": "closed"})
+LABELS_TO_CLOSE = {"completed", "wontfix"}
+
+def main():
+    token = os.getenv("GITHUB_TOKEN")
+    repo_name = os.getenv("GITHUB_REPOSITORY")
+    gh = Github(token)
+    repo = gh.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
+        if labels & LABELS_TO_CLOSE:
+            issue.edit(state="closed")
+            print(f"Closed issue #{issue.number}: {issue.title}")
+
+if __name__ == "__main__":
+    main()
