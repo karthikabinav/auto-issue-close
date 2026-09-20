@@ -2,17 +2,16 @@
 import os
 from github import Github
 
-REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-TOKEN = os.getenv("GITHUB_TOKEN")
 TARGET_LABELS = {"completed", "wontfix"}
 
 def main():
-    g = Github(TOKEN)
-    repo = g.get_repo(REPO)
+    token = os.getenv("GITHUB_TOKEN")
+    repo_name = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+    g = Github(token)
+    repo = g.get_repo(repo_name)
     for issue in repo.get_issues(state="open"):
         labels = {label.name for label in issue.labels}
         if labels & TARGET_LABELS:
-            print(f"Closing #{issue.number} {issue.title} labels={labels}")
             issue.create_comment("Automatically closing this issue as completed/wontfix.")
             issue.edit(state="closed")
 
