@@ -1,13 +1,24 @@
+#!/usr/bin/env python3
+"""Automatically close issues labeled completed or wontfix."""
 import os
 import requests
-repo = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-token = os.getenv("GITHUB_TOKEN")
-headers = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json"} if token else {}
-close_labels = {"completed", "wontfix"}
-issues = requests.get("https://api.github.com/repos/" + repo + "/issues?state=open", headers=headers).json()
-for issue in issues:
-    labels = set(label["name"] for label in issue.get("labels", []))
-    if labels.intersection(close_labels):
-        num = issue["number"]
-        requests.patch("https://api.github.com/repos/" + repo + "/issues/" + str(num), headers=headers, json={"state": "closed"})
-        print("Closed issue", num)
+
+REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
+HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"} if TOKEN else {}
+CLOSE_LABELS = {"completed", "wontfix"}
+
+def main():
+    resp = requests.get(f"https://api.github.com/repos/{REPO}/issues?state=open&per_page=100", headers=HEADERS, timeout=30)
+    resp.raise_for_status()
+    for issue in resp.json():
+        if "pull_request" in issue:
+            continue
+        labels = {label.get("name") for label in issue.get("labels", [])}
+        if labels & CLOSE_LABELS:
+            number = issue["number"]
+            requests.patch(f"https://api.github.com/repos/{REPO}/issues/{number}", headers=HEADERS, json={"state": "closed"}, timeout=30).raise_for_status()
+            print(f"Closed issue #{number}")
+
+if __name__ == "__main__":
+    main()
