@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Automatically close issues labeled completed or wontfix."""
-import os
-import requests
-
+import os, requests
 REPO = os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
 TOKEN = os.getenv("GITHUB_TOKEN")
 HEADERS = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"} if TOKEN else {}
