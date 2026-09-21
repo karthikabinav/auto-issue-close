@@ -1,27 +1,25 @@
-#!/usr/bin/env python3
-"""Automatically close issues labeled as completed or wontfix."""
-import os
-import requests
+"""Automatically close issues labeled as completed or wontfix.
 
-OWNER = os.getenv("GITHUB_OWNER", "karthikabinav")
-REPO = os.getenv("GITHUB_REPO", "auto-issue-close")
-TOKEN = os.getenv("GITHUB_TOKEN")
+Usage: set GITHUB_TOKEN and run: python auto_close_issues.py <owner> <repo>
+This is for learning GitHub automation; it only closes open issues
+carrying the completed or wontfix labels in the specified test repo.
+"""
+import os, sys, requests
 LABELS_TO_CLOSE = {"completed", "wontfix"}
 
 def main():
-    headers = {"Accept": "application/vnd.github+json"}
-    if TOKEN:
-        headers["Authorization"] = f"Bearer {TOKEN}"
-    base = f"https://api.github.com/repos/{OWNER}/{REPO}/issues"
-    resp = requests.get(base, headers=headers, params={"state": "open"}, timeout=30)
-    resp.raise_for_status()
-    for issue in resp.json():
+    owner = sys.argv[1] if len(sys.argv) > 1 else "karthikabinav"
+    repo = sys.argv[2] if len(sys.argv) > 2 else "auto-issue-close"
+    token = os.environ.get("GITHUB_TOKEN")
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"} if token else {}
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues"
+    issues = requests.get(url, headers=headers, params={"state": "open", "per_page": 100}).json()
+    for issue in issues:
         if "pull_request" in issue:
             continue
-        labels = {label.get("name") for label in issue.get("labels", [])}
+        labels = {l["name"] for l in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            patch = requests.patch(f"{base}/{issue[chr(39)+chr(39)] if False else issue["number"]}", headers=headers, json={"state": "closed"}, timeout=30)
-            patch.raise_for_status()
+            requests.patch(f"{url}/{issue[chr(39)+chr(39)] if False else issue["number"]}", headers=headers, json={"state": "closed"})
             print(f"Closed #{issue["number"]}: {issue["title"]}")
 
 if __name__ == "__main__":
