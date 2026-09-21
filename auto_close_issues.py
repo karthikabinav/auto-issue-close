@@ -1,9 +1,4 @@
-"""Automatically close issues labeled as completed or wontfix.
-
-Usage: set GITHUB_TOKEN and run: python auto_close_issues.py <owner> <repo>
-This is for learning GitHub automation; it only closes open issues
-carrying the completed or wontfix labels in the specified test repo.
-"""
+"""Automatically close issues labeled as completed or wontfix."""
 import os, sys, requests
 LABELS_TO_CLOSE = {"completed", "wontfix"}
 
@@ -19,7 +14,7 @@ def main():
             continue
         labels = {l["name"] for l in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"{url}/{issue[chr(39)+chr(39)] if False else issue["number"]}", headers=headers, json={"state": "closed"})
+            requests.patch(f"{url}/{issue["number"]}", headers=headers, json={"state": "closed"})
             print(f"Closed #{issue["number"]}: {issue["title"]}")
 
 if __name__ == "__main__":
