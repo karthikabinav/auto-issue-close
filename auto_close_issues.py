@@ -14,8 +14,8 @@ def main():
             continue
         labels = {l["name"] for l in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"{url}/{issue["number"]}", headers=headers, json={"state": "closed"})
-            print(f"Closed #{issue["number"]}: {issue["title"]}")
+            requests.patch(f"{url}/{issue[\"number\"]}", headers=headers, json={"state": "closed"})
+            print(f"Closed #{issue[\"number\"]}: {issue[\"title\"]}")
 
 if __name__ == "__main__":
     main()
