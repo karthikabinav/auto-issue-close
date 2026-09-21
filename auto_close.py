@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Automatically close issues labeled completed or wontfix."""
-import os, sys
+import os
 try:
     from github import Github
 except ImportError:
