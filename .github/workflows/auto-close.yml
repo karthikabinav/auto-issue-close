@@ -6,6 +6,8 @@ jobs:
   close:
     if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - uses: actions/github-script@v7
         with:
