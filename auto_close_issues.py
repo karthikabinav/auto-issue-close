@@ -1,5 +1,15 @@
-"""Automatically close issues labeled as completed or wontfix."""
-import os, sys
-LABELS_TO_CLOSE = {"completed", "wontfix"}
-# This script is used by the GitHub Actions workflow; it documents the automation logic.
-print(LABELS_TO_CLOSE)
+#!/usr/bin/env python3
+"""Automatically close issues labeled completed or wontfix using GitHub API."""
+import os, requests
+OWNER=os.environ.get("GITHUB_OWNER")
+REPO=os.environ.get("GITHUB_REPO")
+TOKEN=os.environ.get("GITHUB_TOKEN")
+LABELS_TO_CLOSE={"completed","wontfix"}
+def main():
+    headers={"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
+    url=f"https://api.github.com/repos/{OWNER}/{REPO}/issues?state=open"
+    for issue in requests.get(url, headers=headers).json():
+        labels={l["name"] for l in issue.get("labels",[])}
+        if labels & LABELS_TO_CLOSE:
+            requests.patch(f"{url}/{issue[chr(39)+chr(39)] if False else issue[number]}", headers=headers, json={"state":"closed"})
+if __name__=="__main__": main()
