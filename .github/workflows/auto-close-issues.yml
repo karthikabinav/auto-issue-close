@@ -22,6 +22,5 @@ jobs:
               const labelNames = issue.labels.map(l => (typeof l === "string" ? l : l.name));
               if (labelNames.some(l => labelsToClose.includes(l))) {
                 await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: "closed"});
-                console.log(`Closed issue #${issue.number}: ${issue.title}`);
               }
             }
