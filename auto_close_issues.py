@@ -13,7 +13,7 @@ def main():
     for issue in issues:
         labels = {l["name"] for l in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue[chr(39)+chr(39)] if False else issue["number"]}", headers=HEADERS, json={"state": "closed"})
+            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue["number"]}", headers=HEADERS, json={"state": "closed"})
             print(f"Closed issue #{issue["number"]}: {issue["title"]}")
 if __name__ == "__main__":
     main()
