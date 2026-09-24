@@ -1,16 +1,21 @@
-#!/usr/bin/env python3
-import os, requests
-REPO=os.environ.get("GITHUB_REPOSITORY")
-TOKEN=os.environ.get("GITHUB_TOKEN")
-CLOSE_LABELS={"completed","wontfix"}
-def main():
-    h={"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
-    base=f"https://api.github.com/repos/{REPO}/issues"
-    issues=requests.get(base, headers=h, params={"state":"open"}).json()
+"""Script to automatically close issues labeled as completed or wontfix."""
+# This is a learning example for GitHub automation
+TARGET_LABELS = {"completed", "wontfix"}
+
+def should_close(labels):
+    return any(label in TARGET_LABELS for label in labels)
+
+def example():
+    issues = [
+        {"title": "Implement new feature", "labels": ["completed"]},
+        {"title": "Remove legacy code", "labels": ["wontfix"]},
+        {"title": "Fix login error", "labels": ["bug"]},
+    ]
     for issue in issues:
-        labels={label["name"] for label in issue.get("labels",[])}
-        if labels.intersection(CLOSE_LABELS):
-            number=issue["number"]
-            requests.patch(base+"/"+str(number), headers=h, json={"state":"closed"})
-if __name__=="__main__":
-    main()
+        if should_close(issue["labels"]):
+            print(f"Would close: {issue["title"]} with labels {issue["labels"]}")
+        else:
+            print(f"Keep open: {issue["title"]}")
+
+if __name__ == "__main__":
+    example()
