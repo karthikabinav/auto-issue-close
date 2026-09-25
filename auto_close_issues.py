@@ -20,9 +20,9 @@ def main():
             continue
         labels = {label["name"] for label in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            r = requests.patch(f"{url}/{issue["number"]}", headers=headers, json={"state": "closed"})
+            r = requests.patch(f"{url}/{issue[chr(34) if False else chr(34)]}" if False else f"{url}/{issue[\"number\"]}", headers=headers, json={"state": "closed"})
             r.raise_for_status()
-            print(f"Closed issue #{issue["number"]}: {issue["title"]}")
+            print(f"Closed issue #{issue[\"number\"]}: {issue[\"title\"]}")
 
 if __name__ == "__main__":
     main()
