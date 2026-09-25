@@ -9,6 +9,7 @@ def main():
     for issue in repo.get_issues(state="open"):
         if LABELS_TO_CLOSE.intersection(label.name for label in issue.labels):
             issue.edit(state="closed")
+            print(f"Closed issue #{issue.number}")
 
 if __name__ == "__main__":
     main()
