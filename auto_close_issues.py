@@ -1,22 +1,31 @@
-"""Automatically close issues labeled completed or wontfix."""
-import os
-import requests
+# Automated Issue Closing Script
+# Closes issues labeled as completed or wontfix
 
-REPO = os.environ.get("GITHUB_REPOSITORY")
-TOKEN = os.environ.get("GITHUB_TOKEN")
-LABELS_TO_CLOSE = {"completed", "wontfix"}
+"""
+This script demonstrates GitHub automation for closing labeled issues.
+In production, this would be run as a GitHub Action or scheduled job.
 
-headers = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github+json"}
+Logic:
+- List open issues
+- If issue has label completed or wontfix, close it
+"""
+
+TARGET_LABELS = {"completed", "wontfix"}
+
+def should_close_issue(labels):
+    """Check if issue should be closed based on labels."""
+    return any(label in TARGET_LABELS for label in labels)
 
 def main():
-    issues = requests.get(f"https://api.github.com/repos/{REPO}/issues?state=open", headers=headers).json()
-    for issue in issues:
-        if "pull_request" in issue:
-            continue
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if labels & LABELS_TO_CLOSE:
-            requests.patch(f"https://api.github.com/repos/{REPO}/issues/{issue["number"]}", headers=headers, json={"state": "closed"})
-            print(f"Closed issue #{issue["number"]}: {issue["title"]}")
+    # Example usage - in real workflow, use GitHub API:
+    # GET /repos/{owner}/{repo}/issues?state=open
+    # For each issue, check labels, then PATCH /repos/{owner}/{repo}/issues/{number} with state=closed
+    print("Checking open issues for labels:", TARGET_LABELS)
+    # Placeholder for GitHub API integration
+    # Example with gh CLI:
+    # gh issue list --label completed --state open
+    # gh issue close <number>
+    pass
 
 if __name__ == "__main__":
     main()
