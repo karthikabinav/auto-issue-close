@@ -1,4 +1,4 @@
-name: Auto Close Labeled Issues
+name: Automatically close labeled issues
 
 on:
   issues:
@@ -8,25 +8,36 @@ permissions:
   issues: write
 
 jobs:
-  close-issue:
-    name: Close issues labeled completed or wontfix
-    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+  close-labeled-issues:
     runs-on: ubuntu-latest
+    if: >-
+      github.event.label.name == 'completed' ||
+      github.event.label.name == 'wontfix'
     steps:
-      - name: Close the issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const label = context.payload.label.name;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: "Automatically closing this issue because it was labeled as " + label + "."
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: "closed"
-            });
+      - name: Close issue automatically
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 << 'PY'
+          import json
+          import os
+          import urllib.request
+
+          issue_number = os.environ.get("ISSUE_NUMBER")
+          repo = os.environ.get("REPO")
+          token = os.environ.get("GITHUB_TOKEN")
+
+          if not issue_number or not repo or not token:
+              raise SystemExit("Missing issue number, repository, or GitHub token.")
+
+          url = f"https://api.github.com/repos/{repo}/issues/{issue_number}"
+          payload = json.dumps({"state": "closed"}).encode("utf-8")
+          request = urllib.request.Request(url, data=payload, method="PATCH")
+          request.add_header("Authorization", f"Bearer {token}")
+          request.add_header("Accept", "application/vnd.github+json")
+          with urllib.request.urlopen(request) as response:
+              print(f"HTTP status: {response.status}")
+          print(f"Closed issue #{issue_number} in {repo}.")
+          PY
