@@ -1,19 +1,23 @@
-import os, requests
-LABELS_TO_CLOSE = {"completed", "wontfix"}
+import os
+from github import Github
+
+# Script to automatically close issues labeled as "completed" or "wontfix"
+# Usage: set GITHUB_TOKEN and GITHUB_REPOSITORY env vars
 
 def main():
-    token = os.environ["GITHUB_TOKEN"]
-    repo = os.environ["GITHUB_REPOSITORY"]
-    headers = {"Authorization": "Bearer " + token, "Accept": "application/vnd.github+json"}
-    url = "https://api.github.com/repos/" + repo + "/issues"
-    issues = requests.get(url, headers=headers, params={"state": "open"}, timeout=30).json()
-    for issue in issues:
-        if "pull_request" in issue:
-            continue
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if labels & LABELS_TO_CLOSE:
-            requests.patch(url + "/" + str(issue["number"]), headers=headers, json={"state": "closed"}, timeout=30)
-            print("Closed issue", issue["number"])
+    token = os.environ.get("GITHUB_TOKEN")
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
+    if not token or not repo_name:
+        print("Missing GITHUB_TOKEN or GITHUB_REPOSITORY")
+        return
+    g = Github(token)
+    repo = g.get_repo(repo_name)
+    target_labels = {"completed", "wontfix"}
+    for issue in repo.get_issues(state="open"):
+        labels = {l.name for l in issue.labels}
+        if labels & target_labels:
+            print(f"Closing issue #{issue.number}: {issue.title} labels={labels}")
+            issue.edit(state="closed")
 
 if __name__ == "__main__":
     main()
