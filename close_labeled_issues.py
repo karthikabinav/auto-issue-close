@@ -39,8 +39,11 @@ def main():
         if "pull_request" in issue:
             continue
         if should_close(issue.get("labels", [])):
-            print(f"Closing #{issue[number]}: {issue[title]}")
-            github_api("PATCH", f"{base}/issues/{issue[number]}", args.token, {"state": "closed"})
+            num = issue["number"]
+            title = issue["title"]
+            print(f"Closing #{num}: {title}")
+            url = f"{base}/issues/{num}"
+            github_api("PATCH", url, args.token, {"state": "closed"})
 
 if __name__ == "__main__":
     main()
