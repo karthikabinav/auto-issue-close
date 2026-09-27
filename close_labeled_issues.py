@@ -1,49 +1,83 @@
-"""Automation script to close GitHub issues labeled as completed or wontfix.
+"""Automatically close issues labeled "completed" or "wontfix".
+
+This script scans all open issues in a repository and closes any that
+carry the "completed" or "wontfix" label. It uses only the Python
+standard library, so no extra dependencies are required.
 
 Usage:
-  python close_labeled_issues.py --owner OWNER --repo REPO --token GITHUB_TOKEN
-
-This script lists open issues and closes those with labels completed or wontfix.
+    GITHUB_TOKEN=<token> python3 close_labeled_issues.py <owner> <repo>
 """
-import argparse
+
 import json
+import os
+import sys
 import urllib.request
 
+# Issues carrying any of these labels will be closed automatically.
 CLOSE_LABELS = {"completed", "wontfix"}
 
-def github_api(method, url, token, data=None):
-    req = urllib.request.Request(url, method=method)
-    req.add_header("Authorization", f"Bearer {token}")
-    req.add_header("Accept", "application/vnd.github+json")
-    if data is not None:
-        req.add_header("Content-Type", "application/json")
-        body = json.dumps(data).encode()
-    else:
-        body = None
-    with urllib.request.urlopen(req, body) as resp:
-        return json.loads(resp.read().decode())
 
-def should_close(labels):
-    names = {l.get("name", "").lower() for l in labels}
-    return bool(names & CLOSE_LABELS)
+def list_open_issues(owner, repo, token):
+    """Fetch every open issue in the repository."""
+    issues = []
+    page = 1
+    while True:
+        url = (
+            f"https://api.github.com/repos/{owner}/{repo}/issues"
+            f"?state=open&per_page=100&page={page}"
+        )
+        request = urllib.request.Request(url, headers={
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github+json",
+        })
+        with urllib.request.urlopen(request) as response:
+            batch = json.loads(response.read().decode("utf-8"))
+        if not batch:
+            break
+        issues.extend(batch)
+        page += 1
+    return issues
+
+
+def close_issue(owner, repo, token, number):
+    """Close a single issue by number."""
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
+    data = json.dumps({"state": "closed"}).encode("utf-8")
+    request = urllib.request.Request(
+        url,
+        data=data,
+        method="PATCH",
+        headers={
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(request):
+        return True
+
 
 def main():
-    parser = argparse.ArgumentParser(description="Close issues labeled completed or wontfix")
-    parser.add_argument("--owner", required=True)
-    parser.add_argument("--repo", required=True)
-    parser.add_argument("--token", required=True)
-    args = parser.parse_args()
-    base = f"https://api.github.com/repos/{args.owner}/{args.repo}"
-    issues = github_api("GET", f"{base}/issues?state=open&per_page=100", args.token)
-    for issue in issues:
-        if "pull_request" in issue:
-            continue
-        if should_close(issue.get("labels", [])):
-            num = issue["number"]
-            title = issue["title"]
-            print(f"Closing #{num}: {title}")
-            url = f"{base}/issues/{num}"
-            github_api("PATCH", url, args.token, {"state": "closed"})
+    if len(sys.argv) != 3:
+        print("Usage: python3 close_labeled_issues.py <owner> <repo>")
+        sys.exit(1)
+
+    owner, repo = sys.argv[1], sys.argv[2]
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        print("Error: GITHUB_TOKEN environment variable is not set.")
+        sys.exit(1)
+
+    closed = 0
+    for issue in list_open_issues(owner, repo, token):
+        label_names = {label["name"] for label in issue.get("labels", [])}
+        if label_names & CLOSE_LABELS:
+            close_issue(owner, repo, token, issue["number"])
+            closed += 1
+            print(f"Closed issue #{issue[number]}: {issue[title]}")
+
+    print(f"Done. Closed {closed} issue(s).")
+
 
 if __name__ == "__main__":
     main()
