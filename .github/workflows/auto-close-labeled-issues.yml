@@ -1,35 +1,51 @@
 name: Auto-close labeled issues
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
   issues:
     types: [labeled]
-  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}
 
 permissions:
   issues: write
 
 jobs:
-  close-issues:
+  close-labeled-issues:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Close issues labeled completed or wontfix
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          for label in completed wontfix; do
-            echo "Checking open issues labeled: $label"
-            for issue_number in $(gh issue list \
-              --label "$label" \
-              --state open \
-              --limit 100 \
-              --json number \
-              --jq ".[].number"); do
-              gh issue close "$issue_number" \
-                --comment "Automatically closed: this issue is labeled $label."
-              echo "Closed issue #$issue_number (label: $label)"
-            done
-          done
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const TARGET_LABELS = new Set([completed, wontfix]);
+            const isClosed = (label) => TARGET_LABELS.has(label.name);
+            const issue = context.payload.issue;
+            const closeIssue = async (issueNumber) => {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: closed,
+              });
+            };
+
+            if (context.eventName === schedule || context.eventName === workflow_dispatch) {
+              const issues = await github.paginate(github.rest.issues.listForRepo, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: open,
+              });
+              const closeableIssues = issues.filter(issueItem => issueItem.labels.some(isClosed));
+              for (const issueItem of closeableIssues) {
+                await closeIssue(issueItem.number);
+              }
+              return;
+            }
+
+            if (!issue || issue.state === closed) {
+              return;
+            }
+            if (issue.labels.some(isClosed)) {
+              await closeIssue(issue.number);
+            }
