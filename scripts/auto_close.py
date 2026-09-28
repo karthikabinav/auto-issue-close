@@ -1,22 +1,27 @@
-"""
-Automated Issue Closing script
-Closes issues labeled as completed or wontfix.
-"""
-import os
-# Example logic for GitHub Actions or local use
+import os, requests
+
+REPO_OWNER = os.getenv("REPO_OWNER", "karthikabinav")
+REPO_NAME = os.getenv("REPO_NAME", "auto-issue-close")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
 TARGET_LABELS = {"completed", "wontfix"}
 
-def should_close(issue_labels):
-    return any(label in TARGET_LABELS for label in issue_labels)
-
-def close_issues_example():
-    # Placeholder for GitHub API integration
-    # In workflow, this is handled by .github/workflows/auto-close.yml
-    print("Checking issues with labels:", TARGET_LABELS)
-    # Pseudo:
-    # for issue in get_open_issues():
-    #     if should_close(issue.labels):
-    #         close_issue(issue.number)
+def main():
+    headers = {"Authorization": "token " + GITHUB_TOKEN, "Accept": "application/vnd.github+json"}
+    url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues?state=open"
+    issues = requests.get(url, headers=headers).json()
+    for issue in issues:
+        if "pull_request" in issue:
+            continue
+        labels = {l["name"] for l in issue["labels"]}
+        if labels & TARGET_LABELS:
+            num = issue["number"]
+            close_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues/{num}"
+            requests.patch(close_url, headers=headers, json={"state": "closed"})
+            comment_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues/{num}/comments"
+            label = list(labels & TARGET_LABELS)[0]
+            requests.post(comment_url, headers=headers, json={"body": f"Auto-closed (label: {label})"})
+            print(f"Closed #{num}")
 
 if __name__ == "__main__":
-    close_issues_example()
+    main()
