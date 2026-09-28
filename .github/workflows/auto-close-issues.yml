@@ -24,3 +24,4 @@ jobs:
                 state: "closed"
               });
             }
+# Automatically closes issues labeled completed or wontfix.
