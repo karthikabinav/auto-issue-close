@@ -1,0 +1,29 @@
+name: Auto Close Completed or Wontfix Issues
+
+on:
+  issues:
+    types:
+      - opened
+      - labeled
+      - reopened
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  close-labeled-issue:
+    if: >-
+      contains(github.event.issue.labels.*.name, 'completed') ||
+      contains(github.event.issue.labels.*.name, 'wontfix')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh issue close "$ISSUE_NUMBER" \
+            --repo "$GH_REPO" \
+            --comment "Automatically closed because it is labeled completed or wontfix."
