@@ -1,4 +1,4 @@
-name: Auto Close Issues
+name: Close Labeled Issues
 
 on:
   issues:
@@ -11,23 +11,9 @@ jobs:
       issues: write
     if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
     steps:
-      - name: Close issue
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            });
-      - name: Add comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: 'This issue was automatically closed due to being labeled as ' + context.payload.label.name + '.'
-            });
+      - name: Close the issue
+        run: gh issue close "$ISSUE" --repo "$REPO"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
