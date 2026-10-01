@@ -1,55 +1,34 @@
-name: Auto-close labeled issues
+name: Auto Close Labeled Issues
 
+# Automatically closes issues as soon as they are labeled
+# "completed" or "wontfix".
 on:
   issues:
-    types: [opened, labeled, reopened]
-  workflow_dispatch:
-    inputs:
-      issue_number:
-        description: Issue number to check without affecting any other issues
-        required: true
-        type: string
+    types: [labeled]
 
 permissions:
   issues: write
 
 jobs:
-  close-issue:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.issue.labels.*.name, 'completed') ||
-      contains(github.event.issue.labels.*.name, 'wontfix')
+  auto-close:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
     steps:
-      - name: Close only open issues labeled completed or wontfix
+      - name: Close the labeled issue
         uses: actions/github-script@v7
         with:
           script: |
-            // Read structured event data, never execute issue titles or bodies.
-            const value = context.eventName === "workflow_dispatch"
-              ? context.payload.inputs.issue_number
-              : context.issue.number;
-            const issue_number = Number(value);
-            if (!Number.isSafeInteger(issue_number) || issue_number < 1) {
-              throw new Error("A positive integer issue number is required.");
-            }
-
-            const target = { ...context.repo, issue_number };
-            // Recheck current labels in case they changed while the job queued.
-            const { data: issue } = await github.rest.issues.get(target);
-            const labels = new Set(issue.labels.map(label =>
-              typeof label === "string" ? label : label.name
-            ));
-            if (issue.pull_request || issue.state !== "open" ||
-                (!labels.has("completed") && !labels.has("wontfix"))) {
-              core.info("No change: this issue does not qualify for automatic closing.");
-              return;
-            }
-
-            await github.rest.issues.update({
-              ...target,
-              state: "closed",
-              state_reason: labels.has("completed") ? "completed" : "not_planned"
+            const label = context.payload.label.name;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Automatically closing this issue because it was labeled \`${label}\`.`
             });
-            core.info(`Closed issue #${issue_number}.`);
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              state_reason: label === 'wontfix' ? 'not_planned' : 'completed'
+            });
