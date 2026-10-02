@@ -1,0 +1,54 @@
+name: Auto Close Labeled Issues
+
+# Automatically closes any issue that is opened with, or later receives,
+# the "completed" or "wontfix" label. Issues with other labels (e.g. "bug")
+# are left open.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-close:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issue if labeled completed or wontfix
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const closeLabels = ["completed", "wontfix"];
+            const issue = context.payload.issue;
+            const labels = issue.labels.map(l => l.name.toLowerCase());
+            const match = labels.find(l => closeLabels.includes(l));
+
+            if (!match) {
+              core.info(`Issue #${issue.number} has no closing label; skipping.`);
+              return;
+            }
+            if (issue.state === "closed") {
+              core.info(`Issue #${issue.number} is already closed; skipping.`);
+              return;
+            }
+
+            // "wontfix" -> not_planned, "completed" -> completed
+            const reason = match === "wontfix" ? "not_planned" : "completed";
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              state: "closed",
+              state_reason: reason
+            });
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `This issue was automatically closed because it was labeled \`${match}\`.`
+            });
+
+            core.info(`Closed issue #${issue.number} (label: ${match}).`);
