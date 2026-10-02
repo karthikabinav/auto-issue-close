@@ -1,3 +1,4 @@
+"""Automatically close issues labeled as completed or wontfix."""
 import os
 import requests
 
@@ -13,9 +14,7 @@ def main():
     url = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/issues?state=open"
     issues = requests.get(url, headers=headers).json()
     for issue in issues:
-        labels = set()
-        for label in issue.get("labels", []):
-            labels.add(label.get("name"))
+        labels = {label.get("name") for label in issue.get("labels", [])}
         if labels.intersection(LABELS_TO_CLOSE):
             issue_url = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/issues/" + str(issue.get("number"))
             requests.patch(issue_url, headers=headers, json={"state": "closed"})
