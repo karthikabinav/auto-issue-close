@@ -1,15 +1,19 @@
-#!/usr/bin/env python3
 """Automatically close issues labeled as completed or wontfix."""
 import os
-try:
-    from github import Github
-    client = Github(os.getenv("GITHUB_TOKEN"))
-    repo = client.get_repo(os.getenv("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close"))
-    TARGET_LABELS = {"completed", "wontfix"}
-    for issue in repo.get_issues(state="open"):
-        labels = {label.name for label in issue.labels}
-        if labels & TARGET_LABELS:
-            print(f"Closing issue #{issue.number}: {issue.title} (labels: {labels})")
-            issue.edit(state="closed")
-except Exception as e:
-    print(f"Script requires PyGithub and a GITHUB_TOKEN; logic: close open issues with labels completed or wontfix. Error: {e}")
+import requests
+
+OWNER = os.getenv("GITHUB_OWNER", "karthikabinav")
+REPO = os.getenv("GITHUB_REPO", "auto-issue-close")
+TOKEN = os.getenv("GITHUB_TOKEN")
+LABELS_TO_CLOSE = {"completed", "wontfix"}
+
+def main():
+    headers = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github+json"} if TOKEN else {}
+    issues = requests.get(f"https://api.github.com/repos/{OWNER}/{REPO}/issues?state=open", headers=headers).json()
+    for issue in issues:
+        labels = {label.get("name") for label in issue.get("labels", [])}
+        if labels & LABELS_TO_CLOSE:
+            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue[chr(110)+chr(117)+chr(109)+chr(98)+chr(101)+chr(114)]}", headers=headers, json={"state": "closed"})
+
+if __name__ == "__main__":
+    main()
