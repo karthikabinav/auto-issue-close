@@ -1,16 +1,22 @@
-# Automated Issue Closing
-# Closes open issues labeled as completed or wontfix
+import sys
 
 CLOSE_LABELS = {"completed", "wontfix"}
 
-def should_close(issue_labels):
-    return bool(set(issue_labels) & CLOSE_LABELS)
+def should_close(labels):
+    return bool(set(labels) & CLOSE_LABELS)
 
-# Automation logic:
-# for issue in list_open_issues(owner, repo):
-#     labels = [label["name"] for label in issue.get("labels", [])]
-#     if should_close(labels):
-#         update_issue(owner, repo, issue["number"], state="closed")
+def main():
+    # Example automation: close issues labeled completed or wontfix
+    issues = [
+        {"number": 1, "labels": ["completed"]},
+        {"number": 2, "labels": ["wontfix"]},
+        {"number": 3, "labels": ["bug"]},
+    ]
+    for issue in issues:
+        if should_close(issue["labels"]):
+            print(f"Closing issue #{issue[number]} with labels {issue[labels]}")
+        else:
+            print(f"Leaving issue #{issue[number]} open with labels {issue[labels]}")
 
 if __name__ == "__main__":
-    print("Auto-close issues labeled completed or wontfix")
+    main()
