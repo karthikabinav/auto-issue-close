@@ -14,9 +14,9 @@ def main():
     ]
     for issue in issues:
         if should_close(issue["labels"]):
-            print(f"Closing issue #{issue[number]} with labels {issue[labels]}")
+            print(f"Closing issue #{issue["number"]} with labels {issue["labels"]}")
         else:
-            print(f"Leaving issue #{issue[number]} open with labels {issue[labels]}")
+            print(f"Leaving issue #{issue["number"]} open with labels {issue["labels"]}")
 
 if __name__ == "__main__":
     main()
