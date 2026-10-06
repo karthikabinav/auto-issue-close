@@ -1,4 +1,4 @@
-"""Close open issues labeled completed or wontfix."""
+# Close open issues labeled completed or wontfix.
 import os
 from github import Github
 
