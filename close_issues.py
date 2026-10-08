@@ -9,6 +9,7 @@ def should_close_issue(labels):
 
 def main():
     print("Automation script to close issues labeled completed or wontfix")
+    print("Closing issues with labels:", CLOSE_LABELS)
 
 if __name__ == "__main__":
     main()
