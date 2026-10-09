@@ -9,6 +9,10 @@ TARGET_LABELS = {"completed", "wontfix"}
 BASE = f"https://api.github.com/repos/{REPO}"
 HEADERS = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"} if GITHUB_TOKEN else {}
 
+def should_close_issue(labels):
+    label_names = {label["name"] if isinstance(label, dict) else str(label) for label in labels}
+    return bool(label_names & TARGET_LABELS)
+
 def close_labeled_issues():
     resp = requests.get(f"{BASE}/issues?state=open&per_page=100", headers=HEADERS)
     resp.raise_for_status()
