@@ -21,7 +21,7 @@ def close_labeled_issues():
         if labels & TARGET_LABELS:
             number = issue["number"]
             r = requests.patch(f"{BASE}/issues/{number}", headers=HEADERS, json={"state": "closed"})
-            print(f"Closed #{number}: {issue[title]} (labels: {labels}) -> {r.status_code}")
+            print(f"Closed #{number}: {issue.get("title")} (labels: {labels}) -> {r.status_code}")
 
 if __name__ == "__main__":
     close_labeled_issues()
