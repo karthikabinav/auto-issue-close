@@ -1,11 +1,11 @@
-name: Auto-close labeled issues
+name: Auto Close Labeled Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
   schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch: {}
+    - cron: "0 * * * *"
+  workflow_dispatch:
 
 permissions:
   issues: write
@@ -26,25 +26,28 @@ jobs:
                 issue_number: issueNumber,
                 state: 'closed',
               });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: 'This issue was automatically closed because it was labeled as `completed` or `wontfix`.',
+              });
             };
-
             if (context.eventName === 'schedule' || context.eventName === 'workflow_dispatch') {
               const issues = await github.paginate(github.rest.issues.listForRepo, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 state: 'open',
               });
-              const closeableIssues = issues.filter(issueItem => issueItem.labels.some(label => TARGET_LABELS.has(label.name)));
-              for (const issueItem of closeableIssues) {
-                await closeIssue(issueItem.number);
+              for (const issueItem of issues) {
+                if (issueItem.labels.some(label => TARGET_LABELS.has(label.name))) {
+                  await closeIssue(issueItem.number);
+                }
               }
               return;
             }
-
             const issue = context.payload.issue;
-            if (!issue || issue.state === 'closed') {
-              return;
-            }
+            if (!issue || issue.state === 'closed') return;
             if (issue.labels.some(label => TARGET_LABELS.has(label.name))) {
               await closeIssue(issue.number);
             }
