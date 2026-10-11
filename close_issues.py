@@ -18,7 +18,6 @@ def main():
     owner = os.environ.get("REPO_OWNER", "karthikabinav")
     repo = os.environ.get("REPO_NAME", "auto-issue-close")
     token = os.environ.get("GITHUB_TOKEN")
-    # Example: in a real workflow, fetch open issues and close those labeled completed/wontfix
     print(f"Checking open issues in {owner}/{repo} for labels: {sorted(CLOSE_LABELS)}")
     # Logic: for each open issue, if should_close(issue labels): close_issue(...)
 
