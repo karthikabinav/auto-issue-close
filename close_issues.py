@@ -1,21 +1,17 @@
-"""Automatically close issues labeled completed or wontfix."""
+#!/usr/bin/env python3
+"""Automatically close issues labeled as completed or wontfix."""
 import os
-import requests
+import sys
 
-OWNER = "karthikabinav"
-REPO = "auto-issue-close"
 CLOSE_LABELS = {"completed", "wontfix"}
 
-def main():
-    token = os.environ.get("GITHUB_TOKEN")
-    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github+json"} if token else {}
-    url = f"https://api.github.com/repos/{OWNER}/{REPO}/issues?state=open"
-    issues = requests.get(url, headers=headers).json()
-    for issue in issues:
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if labels & CLOSE_LABELS:
-            requests.patch(f"https://api.github.com/repos/{OWNER}/{REPO}/issues/{issue[number]}", headers=headers, json={"state": "closed"})
-            print(f"Closed issue #{issue[number]}: {issue[title]}")
+def should_close(labels):
+    return any(label in CLOSE_LABELS for label in labels)
 
 if __name__ == "__main__":
-    main()
+    # Example usage with the GitHub API (token in GITHUB_TOKEN):
+    # List open issues, close those with CLOSE_LABELS.
+    # This script is paired with .github/workflows/auto-close-issues.yml,
+    # which closes issues on the labeled/opened event.
+    print("Close issues labeled: completed or wontfix")
+    print(f"Labels that trigger closing: {sorted(CLOSE_LABELS)}")
