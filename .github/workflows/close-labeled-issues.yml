@@ -1,39 +1,25 @@
-name: Close completed or wontfix issues
+name: Auto-Close Labeled Issues
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/close-labeled-issues.yml
   issues:
-    types: [opened, labeled, reopened]
+    types: [opened, labeled]
 
 permissions:
   issues: write
 
 jobs:
-  ensure-labels:
-    if: github.event_name == 'push'
+  close-labeled-issues:
+    name: Close issues labeled completed or wontfix
     runs-on: ubuntu-latest
+    if: ${{ contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix') }}
     steps:
-      - name: Ensure automation labels exist
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          gh label create completed --repo "$GH_REPO" --description "Work has been completed" --color "0E8A16" --force
-          gh label create wontfix --repo "$GH_REPO" --description "This will not be worked on" --color "FFFFFF" --force
-
-  close-issue:
-    if: >-
-      github.event_name == 'issues' &&
-      (contains(github.event.issue.labels.*.name, 'completed') ||
-       contains(github.event.issue.labels.*.name, 'wontfix'))
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close labeled issue
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-        run: gh issue close "$ISSUE_NUMBER" --repo "$GH_REPO"
+      - name: Close the issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
