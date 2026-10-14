@@ -1,40 +1,25 @@
-# Automatically close issues labeled completed or wontfix.
-# Usage: set GITHUB_TOKEN and GITHUB_REPOSITORY, then run python close_issues.py
-# The script lists open issues and closes any issue with label completed or wontfix.
-# Issues with other labels, for example bug, are left open.
+#!/usr/bin/env python3
+"""Automatically close issues labeled as 'completed' or 'wontfix'."""
 import os
-import sys
-import urllib.request
-import json
+from github import Github
+
+# Labels that trigger automatic closing
 CLOSE_LABELS = {"completed", "wontfix"}
-def api_request(url, token, method="GET", data=None):
-    req = urllib.request.Request(url, method=method)
-    req.add_header("Authorization", "Bearer " + token)
-    req.add_header("Accept", "application/vnd.github+json")
-    req.add_header("X-GitHub-Api-Version", "2022-11-28")
-    body = json.dumps(data).encode() if data is not None else None
-    if body is not None:
-        req.add_header("Content-Type", "application/json")
-    with urllib.request.urlopen(req, data=body) as resp:
-        return json.loads(resp.read().decode())
+
 def main():
     token = os.environ.get("GITHUB_TOKEN")
-    repo = os.environ.get("GITHUB_REPOSITORY")
-    if not token or not repo:
-        print("Set GITHUB_TOKEN and GITHUB_REPOSITORY environment variables.", file=sys.stderr)
-        return 1
-    base = "https://api.github.com/repos/" + repo
-    issues = api_request(base + "/issues?state=open&per_page=100", token)
-    closed = []
-    for issue in issues:
-        if "pull_request" in issue:
-            continue
-        labels = {label["name"].lower() for label in issue.get("labels", [])}
+    repo_name = os.environ.get("GITHUB_REPOSITORY")
+    if not token or not repo_name:
+        raise SystemExit("GITHUB_TOKEN and GITHUB_REPOSITORY must be set")
+    gh = Github(token)
+    repo = gh.get_repo(repo_name)
+    for issue in repo.get_issues(state="open"):
+        labels = {label.name for label in issue.labels}
         if labels & CLOSE_LABELS:
-            api_request(base + "/issues/" + str(issue["number"]), token, method="PATCH", data={"state": "closed"})
-            closed.append(issue["number"])
-            print("Closed issue #" + str(issue["number"]) + ": " + issue["title"])
-    print("Closed " + str(len(closed)) + " issue(s).")
-    return 0
+            print(f"Closing issue #{issue.number}: {issue.title} labels={labels}")
+            issue.edit(state="closed")
+        else:
+            print(f"Keeping open issue #{issue.number}: {issue.title} labels={labels}")
+
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
