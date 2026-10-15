@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Automatically close issues labeled as 'completed' or 'wontfix'."""
+"""Automatically close issues labeled as completed or wontfix."""
 import os
 from github import Github
 
-# Labels that trigger automatic closing
 CLOSE_LABELS = {"completed", "wontfix"}
 
 def main():
