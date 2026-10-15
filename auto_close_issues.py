@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Close GitHub issues labeled completed or wontfix."""
+"""Close GitHub issues labeled completed or wontfix.
+
+Automation script: iterates open issues and closes those
+labeled completed or wontfix. Issues with other labels
+(e.g. bug) are left open.
+"""
 import os
 
 CLOSE_LABELS = {"completed", "wontfix"}
