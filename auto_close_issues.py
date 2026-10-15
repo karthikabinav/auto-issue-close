@@ -1,11 +1,11 @@
-"""Automatically close issues labeled completed or wontfix."""
+#!/usr/bin/env python3
+"""Close GitHub issues labeled completed or wontfix."""
 import os
 
-# Labels that should trigger auto-closing
 CLOSE_LABELS = {"completed", "wontfix"}
 
 def should_close(labels):
-    return any(label in CLOSE_LABELS for label in labels)
+    return bool(set(labels) & CLOSE_LABELS)
 
 if __name__ == "__main__":
-    print("Auto-close script: closes issues labeled completed or wontfix")
+    print("Automation script: closes issues with labels:", sorted(CLOSE_LABELS))
