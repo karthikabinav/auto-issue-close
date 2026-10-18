@@ -2,7 +2,7 @@ name: Auto Close Completed and Wontfix Issues
 
 on:
   issues:
-    types: [labeled]
+    types: [labeled, opened]
 
 permissions:
   issues: write
