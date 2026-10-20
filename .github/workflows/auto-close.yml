@@ -1,17 +1,21 @@
 name: Auto Close Labeled Issues
+
 on:
   issues:
-    types: [opened, labeled]
-  workflow_dispatch:
+    types: [labeled]
+
 jobs:
-  close-issues:
+  close-labeled-issues:
     runs-on: ubuntu-latest
-    permissions:
-      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Close completed or wontfix issues
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: python close_issues.py
+      - name: Close issue if labeled completed or wontfix
+        if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            })
