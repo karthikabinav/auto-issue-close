@@ -8,7 +8,7 @@ permissions:
   issues: write
 
 jobs:
-  close-issues:
+  auto-close:
     runs-on: ubuntu-latest
     if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     steps:
