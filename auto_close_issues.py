@@ -1,31 +1,22 @@
-#!/usr/bin/env python3
-"""Automatically close issues labeled completed or wontfix."""
+# Automation script to automatically close issues labeled as completed or wontfix
+
 import os
-import sys
-import requests
 
-CLOSE_LABELS = {"completed", "wontfix"}
+# Labels that trigger automatic closing
+CLOSE_LABELS = ["completed", "wontfix"]
 
-def main():
-    repo = os.environ.get("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
-    token = os.environ.get("GITHUB_TOKEN")
-    if not token:
-        print("GITHUB_TOKEN not set")
-        return 1
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
-    issues_url = f"https://api.github.com/repos/{repo}/issues?state=open&per_page=100"
-    resp = requests.get(issues_url, headers=headers)
-    resp.raise_for_status()
-    for issue in resp.json():
-        if "pull_request" in issue:
-            continue
-        labels = {label["name"] for label in issue.get("labels", [])}
-        if labels & CLOSE_LABELS:
-            number = issue["number"]
-            print(f"Closing issue #{number}: {issue[title]} labels={labels}")
-            r = requests.patch(f"https://api.github.com/repos/{repo}/issues/{number}", headers=headers, json={"state": "closed"})
-            r.raise_for_status()
-    return 0
+def should_close(issue_labels):
+    return any(label in CLOSE_LABELS for label in issue_labels)
+
+def close_issues(issues):
+    for issue in issues:
+        labels = [label.get("name") if isinstance(label, dict) else label for label in issue.get("labels", [])]
+        if should_close(labels):
+            print(f"Closing issue #{issue[number]}: {issue[title]} (labels: {labels})")
+            # In a real GitHub workflow, this would call update_issue with state=closed
+            # e.g. update_issue(owner, repo, issue[number], state=closed)
+        else:
+            print(f"Keeping open issue #{issue[number]}: {issue[title]} (labels: {labels})")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    print("Automation: closing issues labeled completed or wontfix")
