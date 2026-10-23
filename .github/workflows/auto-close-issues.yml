@@ -1,51 +1,20 @@
 name: Auto-close completed and wontfix issues
 
-# This workflow automatically closes any issue that carries the
-# "completed" or "wontfix" label.
-
 on:
   issues:
     types: [labeled, opened, reopened, edited]
 
 jobs:
   auto-close:
-    name: Auto-close labeled issues
-    # Only run when the issue is labeled "completed" or "wontfix"
-    if: >-
-      contains(join(github.event.issue.labels.*.name, ","), "completed") ||
-      contains(join(github.event.issue.labels.*.name, ","), "wontfix")
+    if: contains(join(github.event.issue.labels.*.name, ","), "completed") || contains(join(github.event.issue.labels.*.name, ","), "wontfix")
     runs-on: ubuntu-latest
     permissions:
       issues: write
-
     steps:
-      - name: Post explanatory comment and close issue
+      - name: Close issue labeled completed or wontfix
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const labels = context.payload.issue.labels.map(l => l.name);
-            let reason = null;
-            if (labels.includes("completed")) reason = "completed";
-            if (labels.includes("wontfix")) reason = "not_planned";
-
-            const labelNames = labels.filter(l => l === "completed" || l === "wontfix").join(", ");
-
-            // Leave a comment explaining why the issue is being auto-closed
-            await github.rest.issues.addComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `This issue is being automatically closed because it is labeled: ${labelNames}.`
-            });
-
-            // Close the issue
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: "closed",
-              state_reason: reason
-            });
-
-            console.log(`Closed issue #${context.issue.number} with reason: ${reason}`);
+            await github.rest.issues.addComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body: "This issue is being automatically closed because it is labeled completed or wontfix."});
+            await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: "closed"});
