@@ -7,6 +7,7 @@
 # - Otherwise leave the issue open (e.g. label "bug" stays open)
 
 CLOSE_LABELS = {"completed", "wontfix"}
+
 def should_close(issue_labels):
     return any(label in CLOSE_LABELS for label in issue_labels)
 
