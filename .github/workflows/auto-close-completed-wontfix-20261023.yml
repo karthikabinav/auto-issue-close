@@ -1,0 +1,43 @@
+name: Close completed or wontfix issues (student automation)
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+  workflow_dispatch:
+    inputs:
+      issue_numbers:
+        description: Comma-separated issue numbers to test (only these issues are inspected)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: auto-close-20261023-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  close-labeled-issues:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted workflow code
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Test label filtering without API calls
+        run: node --test .github/scripts/close-completed-wontfix-20261023.test.js
+      - name: Close matching issues
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          ISSUE_NUMBERS: ${{ inputs.issue_numbers }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const closeIssues = require("./.github/scripts/close-completed-wontfix-20261023.js");
+            const issueNumbers = context.eventName === "workflow_dispatch"
+              ? closeIssues.parseIssueNumbers(process.env.ISSUE_NUMBERS || "")
+              : undefined;
+            await closeIssues({ github, context, core, issueNumbers });
