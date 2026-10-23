@@ -14,22 +14,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const labels = context.payload.issue.labels.map(label => label.name);
-            const closeLabels = ['completed', 'wontfix'];
-            const shouldClose = labels.some(label => closeLabels.includes(label));
-            
-            if (shouldClose) {
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                state: 'closed'
-              });
-              
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: 'This issue has been automatically closed because it was labeled as `completed` or `wontfix`.'
-              });
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes("completed") || labels.includes("wontfix")) {
+              await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: "closed"});
             }
