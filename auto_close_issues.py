@@ -12,14 +12,19 @@ def main():
     owner, repo_name = repo.split("/", 1)
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
     url = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
-    issues = requests.get(url, headers=headers, params={"state": "open", "per_page": 100}, timeout=30).json()
+    response = requests.get(url, headers=headers, params={"state": "open", "per_page": 100}, timeout=30)
+    response.raise_for_status()
+    issues = response.json()
     for issue in issues:
         if "pull_request" in issue:
             continue
-        labels = {label["name"] for label in issue.get("labels", [])}
+        labels = {label.get("name") for label in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
-            requests.patch(f"{url}/{issue[chr(39)+chr(39)] if False else issue[number]}", headers=headers, json={"state": "closed"}, timeout=30).raise_for_status()
-            print(f"Closed issue #{issue[number]}: {issue[title]}")
+            number = issue.get("number")
+            title = issue.get("title")
+            patch = requests.patch(f"{url}/{number}", headers=headers, json={"state": "closed"}, timeout=30)
+            patch.raise_for_status()
+            print(f"Closed issue #{number}: {title}")
 
 if __name__ == "__main__":
     main()
