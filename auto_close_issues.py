@@ -7,14 +7,14 @@ LABELS_TO_CLOSE = {"completed", "wontfix"}
 
 def main():
     token = os.environ.get("GITHUB_TOKEN")
-    repo = os.environ.get("GITHUB_REPOSITORY")
-    if not token or not repo:
-        raise SystemExit("GITHUB_TOKEN and GITHUB_REPOSITORY must be set")
+    repo = os.environ.get("GITHUB_REPOSITORY", "karthikabinav/auto-issue-close")
+    if not token:
+        print("GITHUB_TOKEN not set; dry-run mode listing target labels", LABELS_TO_CLOSE)
+        return
     owner, repo_name = repo.split("/", 1)
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
     base = f"https://api.github.com/repos/{owner}/{repo_name}/issues"
-    # Safe targeted mode: if issue numbers are given, only check those.
-    numbers = [int(a) for a in sys.argv[1:]]
+    numbers = [int(a) for a in sys.argv[1:]] if len(sys.argv) > 1 else []
     if numbers:
         issues = []
         for n in numbers:
@@ -28,14 +28,14 @@ def main():
     for issue in issues:
         if "pull_request" in issue or issue.get("state") != "open":
             continue
-        labels = {label.get("name") for label in issue.get("labels", [])}
+        labels = {label.get("name") if isinstance(label, dict) else label for label in issue.get("labels", [])}
         if labels & LABELS_TO_CLOSE:
             number = issue.get("number")
             patch = requests.patch(f"{base}/{number}", headers=headers, json={"state": "closed"}, timeout=30)
             patch.raise_for_status()
-            print(f"Closed issue #{number}: {issue.get(chr(116)+chr(105)+chr(116)+chr(108)+chr(101))}")
+            print(f"Closed issue #{number}")
         else:
-            print(f"Leaving #{issue.get(chr(110)+chr(117)+chr(109)+chr(98)+chr(101)+chr(114))} open: labels {sorted(labels)}")
+            print(f"Leaving #{issue.get("number")} open")
 
 if __name__ == "__main__":
     main()
