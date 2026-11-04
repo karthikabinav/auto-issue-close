@@ -9,11 +9,14 @@ LABELS = {"completed", "wontfix"}
 
 def close_issues():
     headers = {"Authorization": f"Bearer {TOKEN}", "Accept": "application/vnd.github+json"}
-    issues = requests.get(f"https://api.github.com/repos/{REPO}/issues", headers=headers, params={"state": "open"}).json()
+    response = requests.get(f"https://api.github.com/repos/{REPO}/issues", headers=headers, params={"state": "open"})
+    issues = response.json()
     for issue in issues:
         labels = {label["name"] for label in issue.get("labels", [])}
         if labels & LABELS:
-            requests.patch(f"https://api.github.com/repos/{REPO}/issues/{issue[chr(39)+"number"+chr(39)]}", headers=headers, json={"state": "closed"})
+            number = issue["number"]
+            url = f"https://api.github.com/repos/{REPO}/issues/{number}"
+            requests.patch(url, headers=headers, json={"state": "closed"})
 
 if __name__ == "__main__":
     close_issues()
