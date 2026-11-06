@@ -1,11 +1,11 @@
 name: Auto Close Issues
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
 
 jobs:
   auto-close:
-    if: github.event.label.name == 'completed' || github.event.label.name == 'wontfix'
+    if: contains(github.event.issue.labels.*.name, 'completed') || contains(github.event.issue.labels.*.name, 'wontfix')
     runs-on: ubuntu-latest
     permissions:
       issues: write
