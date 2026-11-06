@@ -1,13 +1,32 @@
 """
-Automated Issue Closing script
-Closes issues labeled as 'completed' or 'wontfix'
+Automation script to close GitHub issues labeled as completed or wontfix.
+This script can be run manually or via GitHub Actions.
 """
-TARGET_LABELS = {"completed", "wontfix"}
+import os
+
+# Labels that trigger auto-close
+AUTO_CLOSE_LABELS = {"completed", "wontfix"}
 
 def should_close(labels):
-    return any(l in TARGET_LABELS for l in labels)
+    """Return True if issue should be auto-closed based on labels."""
+    return bool(set(labels) & AUTO_CLOSE_LABELS)
 
-# In GitHub Actions, this logic is implemented in .github/workflows/auto-close.yml
-# This file documents the automation logic for learning purposes.
+def close_issues_example():
+    """Example logic for GitHub Actions using github-script or PyGithub."""
+    # In real workflow, use GitHub API:
+    # from github import Github
+    # g = Github(os.getenv("GITHUB_TOKEN"))
+    # repo = g.get_repo(os.getenv("GITHUB_REPOSITORY"))
+    # for issue in repo.get_issues(state="open"):
+    #     lbls = [l.name for l in issue.labels]
+    #     if should_close(lbls):
+    #         issue.create_comment(f"Automatically closing as labeled {lbls}")
+    #         issue.edit(state="closed")
+    pass
+
 if __name__ == "__main__":
-    print("Automation: close issues with labels 'completed' or 'wontfix'")
+    # Simple test
+    assert should_close(["completed"]) == True
+    assert should_close(["wontfix"]) == True
+    assert should_close(["bug"]) == False
+    print("Auto-close logic verified for labels: completed, wontfix")
