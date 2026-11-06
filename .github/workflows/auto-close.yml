@@ -15,18 +15,18 @@ jobs:
         with:
           script: |
             const labels = context.payload.issue.labels.map(l => l.name);
-            if (labels.includes(u0027completedu0027) || labels.includes(u0027wontfixu0027)) {
-              const reason = labels.includes(u0027completedu0027) ? u0027completedu0027 : u0027wontfixu0027;
+            if (labels.includes("completed") || labels.includes("wontfix")) {
+              const reason = labels.includes("completed") ? "completed" : "wontfix";
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: `Automatically closing issue as it is labeled \u0027${reason}\u0027.`
+                body: "Automatically closing issue as it is labeled "" + reason + ""."
               });
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                state: u0027closedu0027
+                state: "closed"
               });
             }
